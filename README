@@ -1,0 +1,309 @@
+_______________________________________________________________
+|                                                              |
+|                        Organization                          |
+|______________________________________________________________|
+
+- "dataset" folder: 
+    - "images" folder: contains single images for testing
+    - "synthetic_X" folders: each folder contains some images with a file called "ground_truth.csv" that specify the correct coordinates of the segments in the images
+    - Code to generate synthetic datasets. 
+
+- "src" folder:
+    - contains the c++ code of the program
+    - "python" folder: contains the script for images conversion, written in python.
+
+- "papers" folder: articles about the Hough Transform.
+
+- "performance" folder:
+    - contains .csv files with the registered performance of each run of the program.
+    - contains a notebook used to inspect the .csv files.
+
+- "output" folder: used to save any output of the program (except the performance)
+
+- "HoughTransform" file: program.
+- "parameters" file: parameters to control the program behaviour without rebuilding it.
+- "parameters_configurations" : contains different versions of the parameters file.
+
+_______________________________________________________________
+|                                                              |
+|          Compile program - Locally & HPC Cluster             |
+|______________________________________________________________|
+CODE IN: src/
+
+- HPC CLUSTER
+1 - Load modules
+[bash]
+module load gcc91
+module load openmpi-3.0.0--gcc-9.1.0
+module load mpich-3.2.1--gcc-9.1.0
+
+2 - Build with:
+[bash]
+mpic++ -g -Wall -fopenmp -o HoughTransform main.cpp src/*.cpp
+
+- LOCALLY 
+2 - Both locally and on HPC Cluster
+
+
+_______________________________________________________________
+|                                                              |
+|           Execute program - Locally & HPC Cluster            |
+|______________________________________________________________|
+
+- LOCALLY
+
+[bash]
+./HoughTransform parameters
+
+- HPC CLUSTER
+
+[bash]
+qsub HoughTransform.sh
+
+NOTE
+In script HoughTransform.sh, to run the program is used the following command:
+mpirun.actual -n 5 ./HPC/openMP/HoughTransform HPC/openMP/parameters
+
+_______________________________________________________________
+|                                                              |
+|          Image converter - How to use - Locally              |
+|______________________________________________________________|
+CODE IN: src/python/
+
+It"s possibile to convert an image or all the images in a folder to a different format.
+
+1 - Use:
+[bash]
+python image_converter.py <path_to_image or path_to_folder> <requested format (pnm, jpeg, png, ...)>
+
+IMPORTANT:
+(<path_to_image> must end with the image file name WITHOUT the EXTENSION)
+(<path_to_folder> must end with the folder name WITHOUT FINAL "/")
+(<requested_format> WITHOUT "." in front)
+
+EXAMPLE - Convert all images in "input_images" folder to .pnm format
+[bash]
+python src/python/image_converter.py dataset/images pnm
+
+(python or python3)
+
+____________________________________________________________
+|                                                              |
+|         Image converter - How to use - HPC cluster           |
+|______________________________________________________________|
+CODE IN: src/python/
+
+1 - Create python virtual environment with OpenCV on login node home directory
+(from PBS command line inteface slides)
+
+[bash]
+module load python-3.7.2
+python3 -m venv cv2
+source cv2/bin/activate
+(tf) $ python -m pip install --upgrade pip
+(tf) $ python -m pip install opencv-python
+(tf) deactivate
+
+Now the environment with openCV is available to encapsulate script execution.
+
+2 - Use image_converter.sh script.
+The path and format can be modified in image_converter.sh script (as explained in [LOCALLY] section)
+
+[bash]
+qsub image_converter.sh
+
+_______________________________________________________________
+|                                                              |
+|        Dataset generation - How to use - Locally             |
+|______________________________________________________________|
+CODE IN: dataset/
+
+It"s possibile to generate a dataset of the specified number of images. Each image will contain segments, with a random orientation and length.
+The resolution of images can be controlled and also the maximum number of lines in images (will be between 1 and the specified maximum, randomly).
+
+1 - Set the dataset parameters inside generate_dataset.py 
+
+2- Use:
+[bash]
+python <path-to>/dataset/generate_dataset.py
+
+(python or python3)
+
+_______________________________________________________________
+|                                                              |
+|        Dataset generation - How to use - HPC cluster         |
+|______________________________________________________________|
+CODE IN: dataset/
+
+1  - Follow step 1 of "Image converter - How to use - HPC cluster" section to create python environment with openCV.
+
+2 - Set the dataset parameters inside generate_dataset.py 
+
+3 - Generate the dataset using generate_dataset.sh script.
+
+[bash]
+qsub <path-to>/dataset/generate_dataset.sh
+
+
+_______________________________________________________________
+|                                                              |
+|                        Parameters                            |
+|______________________________________________________________|
+
+"parameters" is the configuration file for the program.
+It contains different parameters that allow to control different aspects of the program.
+A single executable can be runned more times with totally different parameters.
+
+"parameters_configurations": contains a version of the parameters file for each image in "dataset/images/" and for each synthetic dataset.
+
+_______________________________________________________________
+|                                                              |
+|                   Parameters - Description                   |
+|______________________________________________________________|
+
+ - General Execution Parameters
+
+    run_for
+        Description: Defines the type of execution.
+            dataset_evaluation: Expects a folder of images (with a ground_truth.csv file for evaluation) in the "input" parameter.
+            single_image_test: Expects a single image file in "input" parameter.
+        Values: dataset_evaluation, single_image_test
+
+    HT_version
+        Description: Specifies the version of the Hough Transform to use.
+            HT: Standard Hough Transform.
+            PHT: Probabilistic Hough Transform.
+            PPHT: Progressive Probabilistic Hough Transform.
+        Values: HT, PHT, PPHT
+
+    parallel
+        Description: Indicates whether the execution will be parallelized (where necessary) or strictly serial.
+        Values: true, false
+
+    parallel_type
+        Description: Specifies the type of parallelization to use.
+        Values: openMP, MPI
+
+    thread_count
+        Description: Number of threads to use. If the specified number exceeds the available threads, all available threads will be used.
+        Values: <int>
+
+    verbose
+        Description: If true, all available information about the process will be shown in the console. If false, only limited information will be shown.
+        Values: true, false
+        
+ - Input and Output Parameters
+
+    input
+        Description: Path to the input image or dataset inside the predefined "dataset" folder.
+        Values: "dataset/..."
+
+    output_folder
+        Description: Folder where the program will save the intermediate output images of the program. If it doesn"t exist, it will be created. If another folder with the same name exists, it will be deleted (with all content) and recreated.
+        Values: "output/..."
+
+    performance_path
+        Description: Path where performance evaluation results are saved in .csv files for later inspection.
+        Values: "performance/..."
+
+ - Images Conversion Parameters
+
+    convert_output
+        Description: If true converts all program .pnm output images in the folder specified in "output" parameter to the format specified by "conversion_format" parameter.
+        Values: true, false
+
+    converter_program_location
+        Description: Path to the external Python script used for converting output images.
+        Values: "./src/python/image_converter.py"
+
+    conversion_format
+        Description: Format to which the output images will be converted.
+        Values: jpg, pnm, jpeg, png, ...
+
+ - Image Preprocessing Parameters
+
+    greyscale_conversion
+        Description: Converts the image to greyscale if true.
+        Values: true, false
+
+    gaussian_blur
+        Description: Applies Gaussian blur to the image based on the parameters gb_kernel_size and gb_sigma, if true.
+        Values: true, false
+
+    gb_kernel_size
+        Description: Size of the quadratic matrix to use for blurring.
+        Values: <int>
+
+    gb_sigma
+        Description: Standard deviation used to compute the matrix values for Gaussian blur.
+        Values: <float>
+
+    histogram_equalization
+        Description: Applies histogram equalization to increase contrast and redistribute the intensities.
+        Values: true, false
+
+    Edge Detection Parameters
+
+        sobel_edge_detection
+            Description: Uses the Sobel algorithm to detect edges in the image, based on the parameters sed_threshold and sed_scale_factor. Sobel edge detection find the gradient magnitude of the image intensity, then highlight regions that should correspond to edges.
+            Values: true, false
+
+        sed_threshold
+            Description: Threshold value for the Sobel edge detection algorithm. It determines the minimum gradient magnitude that will be considered as an edge.
+            Values: <int>
+
+        sed_scale_factor
+            Description: Scale factor for the Sobel edge detection algorithm. It is used to scale the computed gradient magnitudes.
+            Values: <int>
+
+ - HT, PHT and PPHT Parameters
+
+    hough_vote_threshold
+        Description: Minimum number of votes needed to consider a line in the Hough Transform. This parameter filters out lines that are not strongly represented in the image.
+        Values: <int>
+
+    hough_theta
+        Description: Theta resolution of the Hough Transform in degrees. It defines the angular resolution of the Hough space.
+        Values: <int>
+
+ - PHT and PPHT Parameters
+
+    sampling_rate
+        Description: Sampling rate for the Progressive Probabilistic Hough Transform (PPHT). This parameter determines the fraction of points that will be used in each iteration, affecting the efficiency and accuracy of the transform.
+        Values: <int>
+
+ - PPHT Parameters
+
+    ppht_line_gap
+        Description: Maximum allowed gap between points on the same line to link them in PPHT. This parameter helps in connecting broken segments of a line.
+        Values: <int>
+
+    ppht_line_len
+        Description: Minimum line length for a line to be detected in PPHT. Shorter lines will be ignored, reducing noise.
+        Values: <int>
+
+ - Clustering Parameters
+
+    cluster_similar_lines
+        Description: If true, clusters similar lines based on cluster_theta_threshold and cluster_rho_threshold. This helps in reducing redundancy by merging lines that are nearly identical.
+        Values: true, false
+
+    cluster_theta_threshold
+        Description: Threshold for clustering similar lines in terms of theta difference. It defines the angular tolerance for merging lines.
+        Values: <float>
+
+    cluster_rho_threshold
+        Description: Threshold for clustering similar lines in terms of rho difference. It defines the distance tolerance for merging lines.
+        Values: <float>
+
+ - Evaluation Parameters
+
+    detection_distance_threshold
+        Description: It defines the tolerance for considering lines as detected, affecting the precision of the transformation.
+        When the average euclidean distance between the points of two lines is computed (a line detected with HT and a ground truth line):
+            - if the value is below the threshold, the detected line correspond to the ground truth, this is true positive.
+            - if the value is higher the threshold, the detected line doesn't correspond to the ground truth line.
+        This parameter is used only with "run_for" equal to "dataset_evaluation", since ground truth data are not available for single images ("dataset/images/").
+        Values: <float>
+
+
