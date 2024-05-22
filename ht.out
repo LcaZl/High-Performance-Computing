@@ -1,0 +1,125 @@
+Starting the Hough Transform program ...
+
+------ Loading program parameters ------
+
+run_for: single_image_test
+HT_version: HT
+parallel: false
+parallel_type: openMP
+thread_count: 100
+input: HPC/dataset/images/bike.jpg
+output_folder: HPC/output/test/
+performance_path: HPC/performance
+convert_output: true
+converter_program_location: HPC/src/python/image_converter.py
+conversion_format: jpg
+verbose: true
+greyscale_conversion: true
+gaussian_blur: true
+gb_kernel_size: 7
+gb_sigma: 1.9
+histogram_equalization: true
+sobel_edge_detection: true
+sed_threshold: 160
+sed_scale_factor: 1
+hough_vote_threshold: 120
+hough_theta: 240
+cluster_similar_lines: true
+cluster_theta_threshold: 2.0
+cluster_rho_threshold: 5.0
+sampling_rate: 100
+ppht_line_gap: 10
+ppht_line_len: 30
+detection_distance_threshold: 5
+
+
+Executing conversion command: python3 HPC/src/python/image_converter.py HPC/dataset/images/bike.jpg pnm
+Image converted and saved as HPC/dataset/images/bike.pnm
+------ Environment information ------
+
+PBS Select      : 1
+PBS N. cpus     : 1
+PBS Memory      : 4
+OMP Threads     : 1
+OMP Processes   : 96
+OMP Max Threads : 96
+Output directory ready.
+Image read successfully: HPC/dataset/images/bike.pnm
+
+Image Information:
+ - Width: 2573
+ - Height: 1709
+ - Color Type: Color (PPM)
+ - Data Size: 13191771
+
+Preprocessing image:
+ - Input: HPC/dataset/images/bike.pnm
+ - Parallel Processing: Disabled
+ - Threads: 100
+
+[1] Converting the image to grayscale...
+ - Image saved to HPC/output/test/bike-1_greyscale.pnm
+ - Time taken for grayscale_conversion: 264 ms
+
+[2] Applying histogram equalization...
+ - Image saved to HPC/output/test/bike-2_equalized.pnm
+ - Time taken for histogram_equalization: 124 ms
+
+[3] Blurring using a Gaussian filter...
+Kernel Size: 7, Sigma: 1.9
+-> Gaussian Kernel (7x7):
+
+0.0041 0.0083 0.0126 0.0144 0.0126 0.0083 0.0041 
+0.0083 0.0166 0.0251 0.0288 0.0251 0.0166 0.0083 
+0.0126 0.0251 0.0380 0.0437 0.0380 0.0251 0.0126 
+0.0144 0.0288 0.0437 0.0501 0.0437 0.0288 0.0144 
+0.0126 0.0251 0.0380 0.0437 0.0380 0.0251 0.0126 
+0.0083 0.0166 0.0251 0.0288 0.0251 0.0166 0.0083 
+0.0041 0.0083 0.0126 0.0144 0.0126 0.0083 0.0041 
+
+ - Image saved to HPC/output/test/bike-3_blur.pnm
+ - Time taken for gaussian_blur: 7441 ms
+
+[4] Applying Sobel edge detection...
+Threshold: 160, Scale Factor: 1.0000
+ - Image saved to HPC/output/test/bike-4_sobel.pnm
+ - Time taken for sobel_edge_detection: 1470 ms
+
+[5] Converting image to binary...
+ - Image saved to HPC/output/test/bike-5_binary.pnm
+ - Time taken for binary_conversion: 56 ms
+
+Hough Transform for Line Detection:
+Parameters:
+ - Version                 : HT
+ - Probabilistic           : No
+ - Parallel                : Disabled
+ - Parallelization Library : openMP
+ - Threads                 : 100
+ - Vote threshold          : 120
+ - Theta                   : 240.0000
+ - Sampling Rate           : 100% (only for probabilistic version)
+ - Clustering              : Yes
+ - Cls. Rho Threshold      : 5.0000
+ - Cls. Theta Threshold    : 2.0000
+Output:
+ - Number of lines found   : 1482720
+ - Maximum votes for a line: 552
+ - Average votes for a line: 8
+ - Number of valid lines   : 497.0000
+ - Time                    : 954 ms
+ - Image saved to HPC/output/test/bike-HT.pnm
+
+
+Output images conversion to .jpg (from .pnm)
+
+Executing conversion command: python3 HPC/src/python/image_converter.py HPC/output/test/ jpg
+Image converted and saved as HPC/output/test/bike-1_greyscale.jpg
+Image converted and saved as HPC/output/test/bike-2_equalized.jpg
+Image converted and saved as HPC/output/test/bike-3_blur.jpg
+Image converted and saved as HPC/output/test/bike-4_sobel.jpg
+Image converted and saved as HPC/output/test/bike-5_binary.jpg
+Image converted and saved as HPC/output/test/bike-HT.jpg
+
+
+Program completed succesfully in 12936 milliseconds

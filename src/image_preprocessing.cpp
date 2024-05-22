@@ -134,62 +134,45 @@ void gaussianBlur(Image& img, int kernelSize, float sigma, bool verbose) {
     img.data = output; // Update the original image with the blurred one
 }
 
+void gaussianBlurPixel(const Image& img, Image& output, const std::vector<std::vector<float>>& kernel, int x, int y) {
+    int edge = kernel.size() / 2;
+    float blurredPixel = 0.0;
+
+    for (int ky = -edge; ky <= edge; ky++) {
+        for (int kx = -edge; kx <= edge; kx++) {
+            // Calculate actual index accounting for boundary conditions
+            int realY = std::max(0, std::min(y + ky, img.height - 1));
+            int realX = std::max(0, std::min(x + kx, img.width - 1));
+            // Accumulate the blurred value
+            blurredPixel += img.data[realY * img.width + realX] * kernel[ky + edge][kx + edge];
+        }
+    }
+    // Assign the blurred pixel, clamping to valid byte range
+    output.data[y * output.width + x] = static_cast<unsigned char>(std::min(std::max(int(blurredPixel), 0), 255));
+}
 
 void gaussianBlurParallel(Image& img, int kernelSize, float sigma, int threadCount, bool verbose) {
     std::vector<std::vector<float>> kernel = calculateGaussianKernel(kernelSize, sigma);
-    if (verbose){
+    if (verbose) {
         std::cout << "-> Gaussian Kernel (" << kernelSize << "x" << kernelSize << "):\n" << std::endl;
         printGaussianKernel(kernel);
     }
 
-    int overlap = kernelSize / 2; // Calculate overlap to account for kernel edges
-
-    // Divide the image into parts, ensuring each part includes additional rows/cols for overlap
-    std::vector<ImagePart> parts = splitImage(img, threadCount, overlap);
+    Image output = img; // Create a copy of the original image for the output
 
     omp_set_num_threads(std::min(threadCount, omp_get_max_threads()));
 
-    // Parallel processing of each image part with dynamic scheduling
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < threadCount; i++) {
-        gaussianBlurToPart(parts[i], kernel, overlap);
-    }
-
-    // Recombine the processed parts back into a single image
-    Image result = recombineImage(parts);
-
-    // Update the original image data with the blurred result
-    img.data = result.data;
-    img.width = result.width;
-    img.height = result.height;
-}
-
-
-void gaussianBlurToPart(ImagePart& imgPart, const std::vector<std::vector<float>>& kernel, int overlap) {
-    int edge = kernel.size() / 2;
-    std::vector<unsigned char> output(imgPart.width * imgPart.height, 0);
-
-    for (int y = 0; y < imgPart.height; y++) {
-        for (int x = 0; x < imgPart.width; x++) {
-            float blurredPixel = 0.0;
-
-            // Apply the kernel to the pixel
-            for (int ky = -edge; ky <= edge; ky++) {
-                for (int kx = -edge; kx <= edge; kx++) {
-                    // Calculate actual index accounting for boundary conditions
-                    int realY = std::max(0, std::min(y + ky, imgPart.height - 1));
-                    int realX = std::max(0, std::min(x + kx, imgPart.width - 1));
-                    // Accumulate the blurred value
-                    blurredPixel += imgPart.data[realY * imgPart.width + realX] * kernel[ky + edge][kx + edge];
-                }
-            }
-            // Assign the blurred pixel, clamping to valid byte range
-            output[y * imgPart.width + x] = static_cast<unsigned char>(std::min(std::max(int(blurredPixel), 0), 255));
+    #pragma omp parallel for collapse(2) schedule(dynamic)
+    for (int y = 0; y < img.height; y++) {
+        for (int x = 0; x < img.width; x++) {
+            gaussianBlurPixel(img, output, kernel, x, y);
         }
     }
 
-    imgPart.data.swap(output);
+    // Update the original image data with the blurred result
+    img.data = output.data;
 }
+
 
 
 /*********************************************************************

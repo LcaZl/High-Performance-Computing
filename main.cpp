@@ -1,8 +1,9 @@
 #include "src/functions.h"
 
-
-
 int main(int argc, char* argv[]) {
+
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
 
     std::cout << "Starting the Hough Transform program ...\n" << std::endl;
 
@@ -13,11 +14,6 @@ int main(int argc, char* argv[]) {
     std::cout << "------ Loading program parameters ------\n\n";
     if (!processInputs(argc, argv, parameters)) 
         return 1;
-    
-    int provided;
-    if (parameters["parallel_type"] == "MPI") {
-        MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-    }
 
     environmentInformation(parameters);
     createOrEmptyDirectory(parameters["output_folder"]); // Empty specified output directory
@@ -86,9 +82,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "\n\nProgram completed succesfully in " << totDuration.count() << " milliseconds" << std::endl;
 
-    if (parameters["parallel_type"] == "MPI") {
-        MPI_Finalize();
-    }
+    MPI_Finalize();
 
     return 0;
 }

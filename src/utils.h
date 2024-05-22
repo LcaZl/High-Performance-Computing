@@ -181,25 +181,6 @@ void savePerformance(const std::unordered_map<std::string, std::string> &paramet
 void saveImage(const Image& img, const std::string& outputPath);
 
 /**
- * Splits an image into several parts, each with the necessary overlap to allow the kernel to co
- *
- * @param img The image to be split.
- * @param parts The number of parts to split the image.
- * @param overlap The number of rows that should overlap between consecutive parts, half the kernel size.
- * @return Returns a vector of ImagePart, where each ImagePart represents an horizontal portion of the original image.
- */
-std::vector<ImagePart> splitImage(const Image &img, int parts, int overlap);
-
-/**
- * Recombines split image parts back into a single image, considering overlaps.
- * The counterpart of the previous function.
- *
- * @param parts A vector of ImagePart, each representing a segment of an image.
- * @return Returns a single Image object that represents the recombined image.
- */
-Image recombineImage(const std::vector<ImagePart> &parts);
-
-/**
  * Converts all images in the given directory, or a single image, to the specified output format.
  * 
  * @param path Path to the image or directory containing images.

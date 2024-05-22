@@ -9,6 +9,7 @@
 module load python-3.7.2
 module load gcc91
 module load openmpi-3.0.0--gcc-9.1.0
+module load mpich-3.2.1--gcc-9.1.0
 
 # Use previously created virtual environment with OpenCV (see local README)
 source cv2/bin/activate
@@ -19,7 +20,7 @@ export PBS_NCPUS=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.ncpus = )\d
 export PBS_MEM=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.mem = )\d+' | sed 's/gb//')
 export OMP_PLACES=threads
 
-mpiexec -np 1 ./HPC/openMP/HoughTransform HPC/openMP/parameters
+mpiexec -np 1 ./HPC/HoughTransform HPC/parameters
 
 # Unset the environment variables and deactivate virtual environment
 unset PBS_SELECT

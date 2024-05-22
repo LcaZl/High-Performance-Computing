@@ -76,8 +76,7 @@ void gaussianBlurParallel(Image &img, int kernelSize, float sigma, int threadCou
  * @param kernel Gaussian kernel to use for blurring.
  * @param overlap Number of overlapping pixels around the part (used to handle boundaries correctly).
  */
-void gaussianBlurToPart(ImagePart &imgPart, const std::vector<std::vector<float>> &kernel, int overlap);
-
+void gaussianBlurPixel(const Image& img, Image& output, const std::vector<std::vector<float>>& kernel, int x, int y);
 
 /*********************************************************************
  * Image manipulation - Sobel for edge detection (Serial & Parallel) *
