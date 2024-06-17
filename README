@@ -1,3 +1,22 @@
+# HPC
+
+HughMain.cpp is basically the base, hughMainMpi.cpp have the start of MPI and I was thinking on adding openmpi later.
+There`s also the transf.py code to make the test images.
+
+## Usage
+
+I`m currently using to compile:
+
+``` bash
+mpic++ -g -Wall -o out hughMainMpi.cpp 
+```
+
+To execute:
+
+``` bash
+time mpirun -np 1 ./out "local path to input" "output"
+```
+
 _______________________________________________________________
 |                                                              |
 |                        Organization                          |
