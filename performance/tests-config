@@ -1,0 +1,45 @@
+TESTS
+
+- Sequential baseline
+
+#PBS -l select=1:ncpus=1:mem=4gb
++ parallel=false
+
+- Parallel preprocessing and HT with openMP
+
+[BASELINE]
+#PBS -l select=1:ncpus=1:mem=4gb
++ parallel=true
++ parallel_type='openMP'
+
+#PBS -l select=1:ncpus=2:mem=4gb
++ parallel=true
++ parallel_type='openMP'
+
+#PBS -l select=1:ncpus=4:mem=4gb
++ parallel=true
++ parallel_type='openMP'
+
+#PBS -l select=1:ncpus=8:mem=4gb
++ parallel=true
++ parallel_type='openMP'
+
+- Parallel preprocessing with openMP
+- Paralle HT with MPI
+
+[BASELINE]
+#PBS -l select=1:ncpus=1:mem=4gb
++ parallel=true
++ parallel_type='MPI'
+
+#PBS -l select=2:ncpus=2:mem=4gb
++ parallel=true
++ parallel_type='MPI'
+
+#PBS -l select=4:ncpus=2:mem=4gb
++ parallel=true
++ parallel_type='MPI'
+
+#PBS -l select=8:ncpus=2:mem=4gb
++ parallel=true
++ parallel_type='MPI'

@@ -82,6 +82,6 @@ std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width,
  * @param thetaThresholdDegrees The threshold for difference in theta values (in degrees) to consider two lines as similar.
  * @return A vector of merged line segments.
  */
-std::vector<Segment> mergeSimilarLines(std::vector<Segment>& lines, const Image& image, double rhoThreshold, double thetaThresholdDegrees);
+std::vector<Segment> mergeSimilarLines(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 #endif

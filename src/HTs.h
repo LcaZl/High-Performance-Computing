@@ -4,6 +4,10 @@
 #include "utils.h"
 #include "HTs_evaluation.h"
 
+
+std::vector<std::vector<int>> houghTransformParallel_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::vector<Segment> linesExtractionParallel_MPI(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::vector<Segment> linesProgressiveExtractionParallel_MPI(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters);
 /**************
  *   SERIAL   *
 ***************/
@@ -13,23 +17,20 @@
  * (rho and theta) for potential lines in the image and populates an accumulator array based on pixel values.
  *
  * @param image Reference to the image object to analyze.
- * @param thetaResolution The resolution in degree for the theta dimension in the accumulator array.
- * @param probabilistic Flag to determine if a probabilistic approach should be used.
- * @param samplingRate Determines how frequently pixels are sampled in the probabilistic approach (probablistic=true).
+ * @param parameters A map containing parameters for the Hough Transform.
  * @return A 2D vector representing the accumulator array.
  */
-std::vector<std::vector<int>> houghTransform(const Image& image, int thetaResolution, bool probabilistic, int samplingRate);
+std::vector<std::vector<int>> houghTransform(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /**
  * Extracts line segments from a Hough Transform (HT) accumulator.
  *
  * @param accumulator 2D vector representing the HT accumulator space.
  * @param image Reference to the image from which lines are to be extracted.
- * @param voteTreshold Minimum number of votes required to consider a line.
- * @param thetaResolution Resolution used for theta axis in the accumulator (degree).
+ * @param parameters A map containing parameters for the Hough Transform.
  * @return Vector of extracted line segments.
  */
-std::vector<Segment> linesExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, int voteTreshold, int thetaResolution);
+std::vector<Segment> linesExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /**
  * Extracts line segments using a progressive approach to exactly identify them.
@@ -38,13 +39,10 @@ std::vector<Segment> linesExtraction(const std::vector<std::vector<int>>& accumu
  *
  * @param accumulator 2D vector representing the HT accumulator space.
  * @param image Reference to the image from which lines are to be extracted.
- * @param voteTreshold Minimum number of votes required to consider a line.
- * @param thetaResolution Resolution used for theta axis in the accumulator (degree).
- * @param line_gap Maximum allowed gap between points on the same line.
- * @param line_length Minimum number of points to form a valid line segment.
+ * @param parameters A map containing parameters for the Hough Transform.
  * @return Vector of extracted line segments.
  */
-std::vector<Segment> linesProgressiveExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, int voteTreshold, int thetaResolution, int line_gap, int line_length);
+std::vector<Segment> linesProgressiveExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /**************
  *  PARALLEL  *
@@ -56,13 +54,10 @@ std::vector<Segment> linesProgressiveExtraction(const std::vector<std::vector<in
  * threads specified by the user.
  *
  * @param image Reference to the image object to analyze.
- * @param thetaResolution The resolution in degree for the theta dimension in the accumulator array.
- * @param probabilistic Flag to determine if a probabilistic approach should be used.
- * @param samplingRate Determines how frequently pixels are sampled in the probabilistic approach (probablistic=true).
- * @param threadCount The number of threads to use in the parallel computation.
+ * @param parameters A map containing parameters for the Hough Transform.
  * @return A 2D vector representing the accumulator array.
  */
-std::vector<std::vector<int>> parallelHoughTransform(const Image& image, int thetaResolution, bool probabilistic, int samplingRate, int threadCount);
+std::vector<std::vector<int>> houghTransformParallel_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 
 /**
@@ -72,11 +67,10 @@ std::vector<std::vector<int>> parallelHoughTransform(const Image& image, int the
  *
  * @param accumulator 2D vector representing the HT accumulator space.
  * @param image Reference to the image from which lines are to be extracted.
- * @param voteTreshold Minimum number of votes required to consider a line.
- * @param thetaResolution Resolution used for theta axis in the accumulator (degree).
+ * @param parameters A map containing parameters for the Hough Transform.
  * @return Vector of extracted line segments.
  */
-std::vector<Segment> linesExtractionParallel(const std::vector<std::vector<int>> &accumulator, const Image &image, int voteThreshold, int thetaResolution, int threadCount);
+std::vector<Segment> linesExtractionParallel_OMP(const std::vector<std::vector<int>> &accumulator, const Image &image, std::unordered_map<std::string, std::string>& parameters);
 
 /**
  * Parallel version.
@@ -85,12 +79,9 @@ std::vector<Segment> linesExtractionParallel(const std::vector<std::vector<int>>
  *
  * @param accumulator 2D vector representing the HT accumulator space.
  * @param image Reference to the image from which lines are to be extracted.
- * @param voteTreshold Minimum number of votes required to consider a line.
- * @param thetaResolution Resolution used for theta axis in the accumulator (degree).
- * @param line_gap Maximum allowed gap between points on the same line.
- * @param line_length Minimum number of points to form a valid line segment.
+ * @param parameters A map containing parameters for the Hough Transform.
  * @return Vector of extracted line segments.
  */
-std::vector<Segment> linesProgressiveExtractionParallel(const std::vector<std::vector<int>> &accumulator, const Image &image, int voteThreshold, int thetaResolution, int lineGap, int lineLength, int threadCount);
+std::vector<Segment> linesProgressiveExtractionParallel_OMP(const std::vector<std::vector<int>> &accumulator, const Image &image, std::unordered_map<std::string, std::string>& parameters);
 
 #endif

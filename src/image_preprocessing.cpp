@@ -151,7 +151,8 @@ void gaussianBlurPixel(const Image& img, Image& output, const std::vector<std::v
     output.data[y * output.width + x] = static_cast<unsigned char>(std::min(std::max(int(blurredPixel), 0), 255));
 }
 
-void gaussianBlurParallel(Image& img, int kernelSize, float sigma, int threadCount, bool verbose) {
+void gaussianBlurParallel(Image& img, int kernelSize, float sigma, bool verbose, int numThreads) {
+    // Calculate Gaussian kernel
     std::vector<std::vector<float>> kernel = calculateGaussianKernel(kernelSize, sigma);
     if (verbose) {
         std::cout << "-> Gaussian Kernel (" << kernelSize << "x" << kernelSize << "):\n" << std::endl;
@@ -160,12 +161,15 @@ void gaussianBlurParallel(Image& img, int kernelSize, float sigma, int threadCou
 
     Image output = img; // Create a copy of the original image for the output
 
-    omp_set_num_threads(std::min(threadCount, omp_get_max_threads()));
-
-    #pragma omp parallel for collapse(2) schedule(dynamic)
-    for (int y = 0; y < img.height; y++) {
-        for (int x = 0; x < img.width; x++) {
-            gaussianBlurPixel(img, output, kernel, x, y);
+    // Parallel region with specified number of threads
+    #pragma omp parallel num_threads(numThreads) default(none) shared(img, output, kernel, kernelSize)
+    {
+        // Parallelize the nested loops with collapse to flatten nested loops into a single parallel loop
+        #pragma omp for collapse(2) schedule(static)
+        for (int y = 0; y < img.height; ++y) {
+            for (int x = 0; x < img.width; ++x) {
+                gaussianBlurPixel(img, output, kernel, x, y);
+            }
         }
     }
 
@@ -234,8 +238,7 @@ void sobelEdgeDetection(Image& img, int threshold, float scaleFactor) {
     img.data = result;
 }
 
-
-void sobelEdgeDetectionParallel(Image& img, int threshold, float scaleFactor, int threadCount) {
+void sobelEdgeDetectionParallel(Image& img, int threshold, float scaleFactor, int numThreads) {
     if (img.isColor) {
         std::cerr << "Sobel Edge Detection should be applied on grayscale images." << std::endl;
         return;
@@ -247,10 +250,8 @@ void sobelEdgeDetectionParallel(Image& img, int threshold, float scaleFactor, in
     std::vector<unsigned char> result(img.data.size(), 0);
     int maxMagnitude = 0;
 
-    omp_set_num_threads(std::min(threadCount, omp_get_max_threads()));
-
     // First pass (Parallel): Calculate the gradient magnitude and identify the maximum value
-    #pragma omp parallel for reduction(max:maxMagnitude)
+    #pragma omp parallel for reduction(max:maxMagnitude) num_threads(numThreads) default(none) shared(img, gx, gy, result)
     for (int y = 1; y < img.height - 1; ++y) {
         for (int x = 1; x < img.width - 1; ++x) {
             int sumX = 0, sumY = 0;
@@ -272,7 +273,7 @@ void sobelEdgeDetectionParallel(Image& img, int threshold, float scaleFactor, in
     #pragma omp barrier
 
     // Second pass (Parallel): Apply threshold and scaling
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(numThreads) default(none) shared(img, gx, gy, result, maxMagnitude, threshold, scaleFactor)
     for (int y = 1; y < img.height - 1; ++y) {
         for (int x = 1; x < img.width - 1; ++x) {
             int sumX = 0, sumY = 0;

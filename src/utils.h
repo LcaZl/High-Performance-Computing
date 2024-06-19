@@ -1,103 +1,10 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <vector>
-#include <fstream>
-#include <iostream>
-#include <algorithm>
-#include <numeric>
-#include <cmath>
-#include <unordered_map>
-#include <sys/stat.h> // For stat()
-#include <cstdlib> // For std::system
-#include <iomanip> // Include for std::setprecision
-#include <chrono> // Include for std::chrono
-#include <dirent.h> // for I/O
-#include <unistd.h> //for I/O
-#include <random>
-#include <cstdlib>
-#include <tuple>
-#include <mpi.h>
+#include "structures.h"
 #ifdef _OPENMP
     #include <omp.h>
 #endif
-/************************
- *  Internal Structure  *
-*************************/
-
-/**
- * 
- * Used to store an image and relative information. 
- * Has two methods to retrieve or set pixel's value at input coordinates of the image.
-*/
-struct Image {
-    std::vector<unsigned char> data; 
-    int width, height;
-    bool isColor; // true per PPM, false per PGM
-
-    // Function to get pixel value at (x, y)
-    unsigned char at(int x, int y) const {
-        if (x >= 0 && x < width && y >= 0 && y < height)
-            return data[y * width + x];
-        return 0;  // Return 0 for out of bounds
-    }
-
-    // Function to set pixel value at (x, y)
-    void setPixel(int x, int y, unsigned char r, unsigned char g, unsigned char b) {
-        if (x >= 0 && x < width && y >= 0 && y < height) {
-            int index = (y * width + x) * 3;
-            data[index] = r;
-            data[index + 1] = g;
-            data[index + 2] = b;
-        }
-    }
-};
-
-struct Point {
-    int x, y;
-    Point(int px, int py) : x(px), y(py) {}
-    Point() : x(0), y(0) {}
-};
-
-/**
- * Used to store segments information. 
- * Used for segment generated with different HT versions (first constructor).
- * Also used for ground truth data (<inter>.. attributes and second constructor).
-*/
-struct Segment {
-    Point start;
-    Point end;
-    double rho;        // Distance from the origin to the line
-    double thetaRad;   // Angle in radians
-    double thetaDeg;   // Angle in degrees (-180, 180)
-    int votes;
-    Point intersectionStart;
-    Point intersectionEnd;
-    double interRho;
-    double interThetaRad;
-    double interThetaDeg;
-
-    Segment(Point s, Point e, double r, double tr, double td, int v) :
-        start(s), end(e), rho(r), thetaRad(tr), thetaDeg(td), votes(v), intersectionStart(Point(0,0)), intersectionEnd(Point(0,0)), interRho(0), interThetaRad(0), interThetaDeg(0){}
-
-    Segment(Point s, Point e, double r, double tr, double td, Point i1, Point i2, double interR, double interTr, double interTd) :
-        start(s), end(e), rho(r), thetaRad(tr), thetaDeg(td), votes(0), intersectionStart(i1), intersectionEnd(i2), interRho(interR), interThetaRad(interTr), interThetaDeg(interTd){}
-};
-
-/**
- * Store information about a part of an image with organized informazion about the necessary outbound area (overlap).
- * Each image part is an horizontal split of an image.
- * 
-*/
-struct ImagePart {
-    std::vector<unsigned char> data; // Stores the pixel data for this part
-    int startRow; // The starting row of this part in the original image
-    int width; // The width of the image (same for all parts)
-    int height; // The height of this part including overlap
-    int overlapTop; // The overlap rows on the top of the part
-    int overlapBottom; // The overlap rows on the bottom of the part
-};
-
 
 /*********************
  * Utility functions *
@@ -130,7 +37,7 @@ double euclideanDistance(const Point& p1, const Point& p2);
  *
  * @param img The Image object to print information for.
  */
-void printImageInfo(const Image &img);
+void imageInfo(const Image &img);
 
 /**
  * Prints the Gaussian kernel to the console.

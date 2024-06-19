@@ -58,9 +58,9 @@ std::tuple<int, int, int, double> analyzeAccumulator(const std::vector<std::vect
     }
 
     // Calculate the average votes for entries exceeding the threshold
-    double average_votes = linesCount > 0 ? static_cast<double>(totalVotes) / linesCount : 0.0;
+    double averageVotes = linesCount > 0 ? static_cast<double>(totalVotes) / linesCount : 0.0;
 
-    return std::make_tuple(linesCount, maxVotes, linesAboveThreshold, average_votes);
+    return std::make_tuple(linesCount, maxVotes, linesAboveThreshold, averageVotes);
 }
 
 std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width, int height) {
@@ -97,8 +97,10 @@ std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width,
     return {start, end};
 }
 
-std::vector<Segment> mergeSimilarLines(std::vector<Segment>& lines, const Image& image, double rhoThreshold, double thetaThresholdDegrees) {
+std::vector<Segment> mergeSimilarLines(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
     std::vector<Segment> mergedLines;
+    double thetaThresholdDegrees = std::stod(parameters["cluster_theta_threshold"]);
+    double rhoThreshold = std::stod(parameters["cluster_rho_threshold"]);
     const double thetaThresholdRadians = degreeToRadiant(thetaThresholdDegrees);
     Point newStart, newEnd;
 

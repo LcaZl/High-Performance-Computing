@@ -1,6 +1,6 @@
 #!/bin/bash
-#PBS -l select=1:ncpus=1:mem=4gb
-#PBS -l walltime=0:02:00
+#PBS -l select=1:ncpus=5:mem=4gb
+#PBS -l walltime=0:01:00
 #PBS -N ht
 #PBS -q short_cpuQ
 #PBS -o ht.out
@@ -11,7 +11,7 @@ module load gcc91
 module load openmpi-3.0.0--gcc-9.1.0
 module load mpich-3.2.1--gcc-9.1.0
 
-# Use previously created virtual environment with OpenCV (see local README)
+# Use previously created virtual environment with OpenCV (see README)
 source cv2/bin/activate
 
 # Dynamically set the environment variables from PBS directives
@@ -20,13 +20,13 @@ export PBS_NCPUS=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.ncpus = )\d
 export PBS_MEM=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.mem = )\d+' | sed 's/gb//')
 export OMP_PLACES=threads
 
-mpiexec -np 1 ./HPC/HoughTransform HPC/parameters
+mpiexec -np $PBS_NCPUS ./HPC/HoughTransform HPC/parameters
 
 # Unset the environment variables and deactivate virtual environment
 unset PBS_SELECT
 unset PBS_NCPUS
 unset PBS_MEM
-
+unset TOTAL_PROCS
 deactivate
 
 # MPIEXEC

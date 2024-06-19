@@ -1,22 +1,3 @@
-# HPC
-
-HughMain.cpp is basically the base, hughMainMpi.cpp have the start of MPI and I was thinking on adding openmpi later.
-There`s also the transf.py code to make the test images.
-
-## Usage
-
-I`m currently using to compile:
-
-``` bash
-mpic++ -g -Wall -o out hughMainMpi.cpp 
-```
-
-To execute:
-
-``` bash
-time mpirun -np 1 ./out "local path to input" "output"
-```
-
 _______________________________________________________________
 |                                                              |
 |                        Organization                          |
@@ -45,7 +26,7 @@ _______________________________________________________________
 
 _______________________________________________________________
 |                                                              |
-|          Compile program - Locally & HPC Cluster             |
+|                Compile program - HPC Cluster                 |
 |______________________________________________________________|
 CODE IN: src/
 
@@ -59,10 +40,6 @@ module load mpich-3.2.1--gcc-9.1.0
 2 - Build with:
 [bash]
 mpic++ -g -Wall -fopenmp -o HoughTransform main.cpp src/*.cpp
-
-- LOCALLY 
-2 - Both locally and on HPC Cluster
-
 
 _______________________________________________________________
 |                                                              |
@@ -81,7 +58,7 @@ qsub HoughTransform.sh
 
 NOTE
 In script HoughTransform.sh, to run the program is used the following command:
-mpirun.actual -n 5 ./HPC/openMP/HoughTransform HPC/openMP/parameters
+mpiexec -np 1 ./HPC/HoughTransform HPC/parameters
 
 _______________________________________________________________
 |                                                              |
@@ -89,7 +66,7 @@ _______________________________________________________________
 |______________________________________________________________|
 CODE IN: src/python/
 
-It"s possibile to convert an image or all the images in a folder to a different format.
+It's possibile to convert an image or all the images in a folder to a different format.
 
 1 - Use:
 [bash]
@@ -126,7 +103,7 @@ source cv2/bin/activate
 Now the environment with openCV is available to encapsulate script execution.
 
 2 - Use image_converter.sh script.
-The path and format can be modified in image_converter.sh script (as explained in [LOCALLY] section)
+The path and format can be modified in image_converter.sh script.
 
 [bash]
 qsub image_converter.sh

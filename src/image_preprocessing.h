@@ -64,10 +64,10 @@ void gaussianBlur(Image &image, int kernelSize, float sigma, bool verbose);
  * @param img Reference to the image to be blurred.
  * @param kernelSize Size of the Gaussian kernel, must be odd.
  * @param sigma Standard deviation of the Gaussian kernel.
- * @param threadCount Number of threads.
  * @param verbose True for console output.
+ * @param numThreads Number of threads for openMP parallelization.
  */
-void gaussianBlurParallel(Image &img, int kernelSize, float sigma, int threadCount, bool verbose);
+void gaussianBlurParallel(Image &img, int kernelSize, float sigma, bool verbose, int numThreads);
 
 /**
  * Applies a Gaussian blur to a part of an image using a specified Gaussian kernel.
@@ -97,8 +97,8 @@ void sobelEdgeDetection(Image &img, int threshold, float scaleFactor);
  * @param img Reference to the Image object to be processed. Must be in grayscale.
  * @param threshold Intensity threshold for edge detection. Pixels below this threshold will be set to 0.
  * @param scaleFactor Factor to scale the intensity of the edges in the final image.
- * @param threadCount Number of threads.
+ * @param numThreads Number of threads for openMP parallelization.
  */
-void sobelEdgeDetectionParallel(Image &img, int threshold, float scaleFactor, int threadCount);
+void sobelEdgeDetectionParallel(Image &img, int threshold, float scaleFactor, int numThreads);
 
 #endif

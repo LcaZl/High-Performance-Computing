@@ -1,5 +1,6 @@
 #include "utils.h"
 
+
 /*********************
  * Utility functions *
 **********************/
@@ -31,12 +32,14 @@ double euclideanDistance(const Point& p1, const Point& p2) {
  * Presentation functions *
 ***************************/
 
-void printImageInfo(const Image& img) {
-    std::cout << "\nImage Information:" << std::endl;
-    std::cout << " - Width: " << img.width << std::endl;
-    std::cout << " - Height: " << img.height << std::endl;
-    std::cout << " - Color Type: " << (img.isColor ? "Color (PPM)" : "Grayscale (PGM)") << std::endl;
-    std::cout << " - Data Size: " << img.data.size() << "\n";
+void imageInfo(const Image& img) {
+
+    std::cout << "------- Image Information ------" << std::endl;
+    std::cout << "Width      : " << img.width << std::endl;
+    std::cout << "Height     : " << img.height << std::endl;
+    std::cout << "Color Type : " << (img.isColor ? "Color (PPM)" : "Grayscale (PGM)") << std::endl;
+    std::cout << "Data Size  : " << img.data.size() << "\n";
+    std::cout << "--------------------------------\n";
 }
 
 void printGaussianKernel(const std::vector<std::vector<float>>& kernel) {
@@ -104,13 +107,11 @@ bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::
                 // Remove single quotes from the value and store in the parameters map
                 value.erase(std::remove(value.begin(), value.end(), '\''), value.end());
                 parameters[key] = value;
-                std::cout << key + ": " + value << std::endl;
+                std::cout << std::left << std::setw(30) << key << ": " << value << std::endl;
             }
         }
     }
-
     std::cout << std::endl;
-
     std::string inputPath(parameters["input"]);
     if (!fileExists(inputPath)) { // Check if file exists
         std::cerr << "File does not exist.\nInput path:" << inputPath << std::endl;
@@ -120,7 +121,7 @@ bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::
     if (parameters["run_for"] == "single_image_test"){
         
         if (inputPath.size() < 4 || inputPath.substr(inputPath.size() - 4) != ".pnm") {
-            std::cerr << "[!] Input image is not a .pnm file.\n";
+            std::cout << "[!] Input image is not a .pnm file." << std::endl;
             convertImages(inputPath, "pnm", parameters);
 
             // Ensure the imagePath ends with ".pnm" after conversion
@@ -141,10 +142,7 @@ bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::
         parameters["image_name"] = image_name;
     }
 
-    
-
     parameters["image_format"] = ".pnm";
-
     return true;
 }
 
@@ -267,8 +265,6 @@ void savePerformance(const std::unordered_map<std::string, std::string>& paramet
     file.close();
 }
 
-
-
 void saveImage(const Image& img, const std::string& outputPath) {
     std::ofstream file(outputPath, std::ios::binary);
     if (!file.is_open()) {
@@ -292,7 +288,7 @@ void saveImage(const Image& img, const std::string& outputPath) {
     if (!file) {
         std::cerr << "[ERROR] Failed to write the image data." << std::endl;
     } else {
-        std::cout << " - Image saved to " << outputPath << std::endl;
+        std::cout << "Image saved to " << outputPath << std::endl;
     }
 }
 
@@ -306,7 +302,7 @@ void convertImages(const std::string& path, const std::string& outputFormat, std
     std::string conversion_program_path(parameters["converter_program_location"]);
     // Command to convert images with python script
     std::string convert_command = "python3 " + conversion_program_path + " " + path + " " + outputFormat;
-    std::cout << "\nExecuting conversion command: " << convert_command << std::endl;
+    std::cout << "Executing conversion command: " << convert_command << std::endl;
     int convertResult = std::system(convert_command.c_str());
 
     if (convertResult != 0) {

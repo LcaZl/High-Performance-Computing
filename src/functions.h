@@ -11,7 +11,7 @@
  * 
  * @param parameters A map containing the parameters for each preprocessing step.
 */
-void environmentInformation(std::unordered_map<std::string, std::string>& parameters);
+void environmentInfo(std::unordered_map<std::string, std::string>& parameters);
 
 /**
  * Performs a series of preprocessing steps on the provided image based on the specified parameters.
@@ -31,7 +31,6 @@ void preprocessImage(Image &img, std::unordered_map<std::string, std::string>& p
  *
  * @param img The image on which to perform the Hough Transform.
  * @param parameters A map containing parameters for the Hough Transform.
- * @param verbose If true show detailed console messages.
  */
 std::vector<Segment> HoughTransformation(Image &img, std::unordered_map<std::string, std::string>& parameters, bool verbose);
 

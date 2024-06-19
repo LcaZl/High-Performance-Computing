@@ -3,6 +3,13 @@ import cv2
 import os
 import shutil
 
+# DATASET PARAMETERS
+
+num_images = 10 # Size of the dataset
+size = (640,640) # Images width and height
+output_dir = "HPC/openMP/dataset/synthetic_0/" # Dataset directory
+max_lines_per_image = 15 # Number of lines per images in range [1, max_lines_per_image]
+
 # This function calculates the Hough transform parameters for a line.
 def calculate_line_intersections(x1, y1, x2, y2, width, height):
     points = []
@@ -108,14 +115,6 @@ def create_or_empty_directory(path):
     print(f"Created directory: {path}")
 
 if __name__ == "__main__":
-
-
-    # DATASET PARAMETERS
-
-    num_images = 10 # Size of the dataset
-    size = (640,640) # Images width and height
-    output_dir = "HPC/openMP/dataset/synthetic_0/" # Dataset directory
-    max_lines_per_image = 15 # Number of lines per images in range [1, max_lines_per_image]
 
 
     create_or_empty_directory(output_dir)
