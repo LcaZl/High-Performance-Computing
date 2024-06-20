@@ -3,8 +3,7 @@
 /**************
  *   SERIAL   *
 ***************/
-
-std::vector<std::vector<int>> houghTransform(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransform(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
 
     bool probabilistic = (parameters["version"] == "PHT" || parameters["version"] == "PPHT");
     double thetaResolution = std::stod(parameters["hough_theta"]);
@@ -40,7 +39,11 @@ std::vector<std::vector<int>> houghTransform(const Image& image, std::unordered_
         }
     }
 
-    return accumulator;
+    std::vector<Segment> segments = (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT") ?
+        linesExtraction(accumulator, image, parameters) :
+        linesProgressiveExtraction(accumulator, image, parameters);
+
+    return { accumulator, segments };
 }
 
 std::vector<Segment> linesExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
@@ -121,11 +124,12 @@ std::vector<Segment> linesProgressiveExtraction(const std::vector<std::vector<in
 /********************
  *  PARALLEL - MPI  *
 *********************/
-
-std::vector<std::vector<int>> houghTransformParallel_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransformParallel_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+    
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
     double thetaResolution = std::stod(parameters["hough_theta"]);
     int samplingRate = std::stoi(parameters["sampling_rate"]);
     bool probabilistic = (parameters["version"] == "PHT" || parameters["version"] == "PPHT");
@@ -175,173 +179,27 @@ std::vector<std::vector<int>> houghTransformParallel_MPI(const Image& image, std
     for (int i = 0; i < rhoSize; ++i) {
         MPI_Reduce(local_accumulator[i].data(), (world_rank == 0 ? accumulator[i].data() : nullptr), thetaResolution, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
     }
-
-    // Broadcast the global accumulator to all processes
-    if (world_rank == 0) {
-        for (int i = 0; i < rhoSize; ++i) {
-            MPI_Bcast(accumulator[i].data(), thetaResolution, MPI_INT, 0, MPI_COMM_WORLD);
-        }
-    } else {
-        accumulator.resize(rhoSize, std::vector<int>(thetaResolution, 0));
-        for (int i = 0; i < rhoSize; ++i) {
-            MPI_Bcast(accumulator[i].data(), thetaResolution, MPI_INT, 0, MPI_COMM_WORLD);
-        }
-    }
     
-    return accumulator;
-}
-
-std::vector<Segment> linesExtractionParallel_MPI(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
-    int world_size, world_rank;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    double thetaResolution = std::stod(parameters["hough_theta"]);
-    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
-
-    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
-    std::vector<Segment> local_lines;
-    std::vector<Segment> lines;
-
-    // Calculate rows for each process
-    int rows_per_process = accumulator.size() / world_size;
-    int remaining_rows = accumulator.size() % world_size;
-
-    // Adjust start and end rows to handle remaining rows
-    int start_row = world_rank * rows_per_process + std::min(world_rank, remaining_rows);
-    int end_row = start_row + rows_per_process + (world_rank < remaining_rows ? 1 : 0);
-
-    for (int rhoIndex = start_row; rhoIndex < end_row; ++rhoIndex) {
-        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
-            if (accumulator[rhoIndex][thetaIndex] > voteThreshold) {
-                double thetaRad = thetaIndex * (M_PI / thetaResolution);
-                double thetaDeg = thetaRad * (180.0 / M_PI);
-                double rho = rhoIndex - rhoMax;
-
-                Point start, end;
-                std::tie(start, end) = calculateEndpoints(rho, thetaRad, image.width, image.height);
-                local_lines.push_back(Segment{start, end, rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]});
-            }
-        }
-    }
-
-    int local_size = local_lines.size();
-    std::vector<int> all_sizes(world_size);
-    MPI_Gather(&local_size, 1, MPI_INT, all_sizes.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    std::vector<int> displs(world_size, 0);
-    int total_size = 0;
-    if (world_rank == 0) {
-        for (int i = 1; i < world_size; ++i) {
-            displs[i] = displs[i - 1] + all_sizes[i - 1];
-        }
-        total_size = displs[world_size - 1] + all_sizes[world_size - 1];
-    }
-
-    MPI_Datatype segmentType;
-    createSegmentMPIType(&segmentType);
-
-    if (world_rank == 0) {
-        lines.resize(total_size);
-    }
-
-    MPI_Gatherv(local_lines.data(), local_size, segmentType,
-                lines.data(), all_sizes.data(), displs.data(), segmentType,
-                0, MPI_COMM_WORLD);
-
-    MPI_Type_free(&segmentType);
-
-    return lines;
-}
-
-
-std::vector<Segment> linesProgressiveExtractionParallel_MPI(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
-    int world_size, world_rank;
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
-    std::vector<Segment> local_segments;
     std::vector<Segment> segments;
-    double thetaResolution = std::stod(parameters["hough_theta"]);
-    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
-    int lineGap = std::stoi(parameters["ppht_line_gap"]);
-    int lineLength = std::stoi(parameters["ppht_line_len"]);
-    // Calculate rows for each process
-    int rows_per_process = accumulator.size() / world_size;
-    int remaining_rows = accumulator.size() % world_size;
+    if (world_rank == 0){
+        if (parameters["ht_line_extraction"] == "None")
+            segments = (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT") ?
+                linesExtraction(accumulator, image, parameters) :
+                linesProgressiveExtraction(accumulator, image, parameters);
 
-    // Adjust start and end rows to handle remaining rows
-    int start_row = world_rank * rows_per_process + std::min(world_rank, remaining_rows);
-    int end_row = start_row + rows_per_process + (world_rank < remaining_rows ? 1 : 0);
-
-    for (int rhoIndex = start_row; rhoIndex < end_row; ++rhoIndex) {
-        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
-            if (accumulator[rhoIndex][thetaIndex] > voteThreshold) {
-                double thetaRad = thetaIndex * (M_PI / thetaResolution);
-                double thetaDeg = thetaRad * (180.0 / M_PI);
-                double rho = rhoIndex - rhoMax;
-                double sinTheta = sin(thetaRad);
-                double cosTheta = cos(thetaRad);
-                std::vector<Point> linePoints;
-
-                for (int x = 0; x < image.width; ++x) {
-                    for (int y = 0; y < image.height; ++y) {
-                        if (image.data[y * image.width + x] > 0) {
-                            int calculatedRho = static_cast<int>((x - image.width / 2) * cosTheta + (y - image.height / 2) * sinTheta);
-                            if (std::abs(calculatedRho - rho) < 2) {
-                                if (!linePoints.empty() && (std::abs(linePoints.back().x - x) > lineGap || std::abs(linePoints.back().y - y) > lineGap)) {
-                                    if (linePoints.size() >= static_cast<size_t>(lineLength)) {
-                                        local_segments.emplace_back(Segment{linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]});
-                                    }
-                                    linePoints.clear();
-                                }
-                                linePoints.push_back(Point{x, y});
-                            }
-                        }
-                    }
-                }
-
-                if (linePoints.size() >= static_cast<size_t>(lineLength)) {
-                    local_segments.emplace_back(Segment{linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]});
-                }
-            }
-        }
+        else if (parameters["ht_line_extraction"] == "openMP")
+            segments = (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT") ?
+                    linesExtractionParallel_OMP(accumulator, image, parameters) :
+                    linesProgressiveExtractionParallel_OMP(accumulator, image, parameters);
     }
 
-    int local_size = local_segments.size();
-    std::vector<int> all_sizes(world_size);
-    MPI_Gather(&local_size, 1, MPI_INT, all_sizes.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    std::vector<int> displs(world_size, 0);
-    int total_size = 0;
-    if (world_rank == 0) {
-        for (int i = 1; i < world_size; ++i) {
-            displs[i] = displs[i - 1] + all_sizes[i - 1];
-        }
-        total_size = displs[world_size - 1] + all_sizes[world_size - 1];
-    }
-
-    MPI_Datatype segmentType;
-    createSegmentMPIType(&segmentType);
-
-    if (world_rank == 0) {
-        segments.resize(total_size);
-    }
-
-    MPI_Gatherv(local_segments.data(), local_size, segmentType,
-                segments.data(), all_sizes.data(), displs.data(), segmentType,
-                0, MPI_COMM_WORLD);
-
-    MPI_Type_free(&segmentType);
-
-    return segments;
+    return { accumulator, segments };
 }
 
 /********************
  *  PARALLEL - OMP  *
 *********************/
-
-std::vector<std::vector<int>> houghTransformParallel_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransformParallel_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
     // Center of the image
     double centerX = image.width / 2.0;
     double centerY = image.height / 2.0;
@@ -399,7 +257,11 @@ std::vector<std::vector<int>> houghTransformParallel_OMP(const Image& image, std
         }
     }
 
-    return accumulator;
+    std::vector<Segment> segments = (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT") ?
+        linesExtractionParallel_OMP(accumulator, image, parameters) :
+        linesProgressiveExtractionParallel_OMP(accumulator, image, parameters);
+
+    return { accumulator, segments };
 }
 
 std::vector<Segment> linesExtractionParallel_OMP(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters) {

@@ -12,8 +12,7 @@ void environmentInfo(std::unordered_map<std::string, std::string>& parameters){
         parameters["pbs_select"] = std::getenv("PBS_SELECT");
         parameters["pbs_ncpus"] = std::getenv("PBS_NCPUS");
         parameters["pbs_mem"] = std::getenv("PBS_MEM");
-        parameters["omp_threads"] = parameters["pbs_ncpus"];
-
+        parameters["number_processes"] = std::getenv("NP_VALUE");
         std::cout << "--- Environment information ----" << std::endl;
         std::cout << "PBS Select       : " << parameters["pbs_select"] << std::endl;
         std::cout << "PBS Tot CPUs     : " << parameters["pbs_ncpus"] << std::endl;
@@ -155,66 +154,71 @@ void preprocessImage(Image& img, std::unordered_map<std::string, std::string>& p
 
 std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::string, std::string>& parameters, bool verbose) {
     
-    int world_rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    int world_rank, linesCount, averageVotes, maxVotes, linesAboveThreshold, serializedImageSize;
     std::string version = parameters["HT_version"];
-    bool parallel = parameters["parallel_ht"] == "true";
-    bool clustering = parameters["cluster_similar_lines"] == "true";
     int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
-
     std::vector<std::vector<int>> accumulator;
-    int linesCount, averageVotes, maxVotes, linesAboveThreshold;
-    auto startTime = MPI_Wtime();
-
-    // Compute Hough Transform in two steps
-
-    // 1 - Retrieve votes for the accumulator
-    if (parallel && parameters["parallel_ht_type"] == "openMP" && world_rank == 0)
-            accumulator = houghTransformParallel_OMP(img, parameters);
-    
-    else if (parallel && parameters["parallel_ht_type"] == "MPI")
-        accumulator = houghTransformParallel_MPI(img, parameters);
-    
-    else if (world_rank == 0)
-            accumulator = houghTransform(img, parameters);
-    
-
-    // 2 - Extract lines accordingly to the precomputed accumulator
+    bool clustering = parameters["cluster_similar_lines"] == "true";
+    std::vector<unsigned char> serializedImage;
     std::vector<Segment> segments;
-    if (parallel && parameters["parallel_ht_type"] == "openMP" && world_rank == 0) 
-            segments = (version == "HT" || version == "PHT") ?
-                linesExtractionParallel_OMP(accumulator, img, parameters) :
-                linesProgressiveExtractionParallel_OMP(accumulator, img, parameters);
-    
-    else if (parallel && parameters["parallel_ht_type"] == "MPI")
-        segments = (version == "HT" || version == "PHT") ?
-        linesExtractionParallel_MPI(accumulator, img, parameters) :
-        linesProgressiveExtractionParallel_MPI(accumulator, img, parameters);
-    
-    else if (world_rank == 0)
-            segments = (version == "HT" || version == "PHT") ?
-                linesExtraction(accumulator, img, parameters) :
-                linesProgressiveExtraction(accumulator, img, parameters);
-    
-    auto endTime = MPI_Wtime();
 
-    // Cluster lines if applicable
-    if (clustering && version != "PPHT" && world_rank == 0) {
-        segments = mergeSimilarLines(segments, img, parameters);
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+    // Hough Transform
+
+    auto startTime = MPI_Wtime();
+    if (parameters["parallel_ht_type"] == "openMP" && world_rank == 0)
+            std::tie(accumulator, segments) = houghTransformParallel_OMP(img, parameters);
+    
+    else if (parameters["parallel_ht_type"] == "MPI"){
+
+        if (world_rank == 0){
+            serializedImage = img.serialize();
+            serializedImageSize = serializedImage.size();
+            std::cout << "Serialized image size on root: " << serializedImageSize << std::endl;
+
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        MPI_Bcast(&serializedImageSize, 1, MPI_INT, 0, MPI_COMM_WORLD); // Broadcast the size of the serialized image
+        serializedImage.resize(serializedImageSize); // Resize the buffer on all processes to hold the serialized image data
+        MPI_Bcast(serializedImage.data(), serializedImageSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD); // Broadcast the serialized image data
+
+        if (world_rank != 0) 
+            img = Image::deserialize(serializedImage);
+
+        MPI_Barrier(MPI_COMM_WORLD);       
+
+        std::cout << "[PROCESS "<< world_rank << "] Started HT." << std::endl;
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        std::tie(accumulator, segments) = houghTransformParallel_MPI(img, parameters);
     }
+    
+    else if (parameters["parallel_ht_type"] == "None" && world_rank == 0)
+            std::tie(accumulator, segments) = houghTransform(img, parameters);
+    
+    if (world_rank == 0){
+        auto endTime = MPI_Wtime();
 
-    parameters["htDuration"] = std::to_string(endTime - startTime);
+        // Cluster lines if applicable
+        if (clustering && version != "PPHT" && world_rank == 0) {
+            segments = mergeSimilarLines(segments, img, parameters);
+        }
+        parameters["htDuration"] = std::to_string(endTime - startTime);
 
-    // Analyze accumulator
-    std::tie(linesCount, maxVotes, linesAboveThreshold, averageVotes) = analyzeAccumulator(accumulator, voteThreshold);
-
-    std::cout 
-    << "[PROCESS " << world_rank << "] HT for "<< parameters["image_name"] << std::endl
-    << "  |- # Lines analyzed        : " << linesCount << std::endl
-    << "  |- Max. Votes for a line   : " << maxVotes << std::endl
-    << "  |- Avg. Votes for a line   : " << averageVotes << std::endl
-    << "  |- # Lines above threshold : " << linesAboveThreshold << std::endl
-    << "  |- # Final Segments        : " << segments.size() << std::endl;
+        // Analyze accumulator
+        std::tie(linesCount, maxVotes, linesAboveThreshold, averageVotes) = analyzeAccumulator(accumulator, voteThreshold);
+        std::cout 
+        << "HT for "<< parameters["image_name"] << std::endl
+        << "  |- # Lines analyzed        : " << linesCount << std::endl
+        << "  |- Max. Votes for a line   : " << maxVotes << std::endl
+        << "  |- Avg. Votes for a line   : " << averageVotes << std::endl
+        << "  |- # Lines above threshold : " << linesAboveThreshold << std::endl
+        << "  |- # Final Segments        : " << segments.size() << std::endl;
+    }
 
     return segments;
 }
@@ -224,8 +228,7 @@ void processDataset(std::unordered_map<std::string, std::string>& parameters) {
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    parameters["parllel_ht_type"] = "openMP";
-
+    
     auto startTime = MPI_Wtime();
     const bool verbose = parameters["verbose"] == "true";
     std::vector<double> precisions;
@@ -235,41 +238,53 @@ void processDataset(std::unordered_map<std::string, std::string>& parameters) {
 
     std::unordered_map<std::string, std::vector<Segment>> gtData;
     std::unordered_map<std::string, int> gtLinesPerImage;
-
+    std::vector<std::string> imageNames;
+    
     if (world_rank == 0) {
         houghTransformInfo(parameters);
         std::cout << "[Process 0] Loading ground truth data...\n";
         loadGroundTruthData(parameters["input"] + "/ground_truth.csv", gtData, gtLinesPerImage);
-    }
 
-    // Broadcast ground truth data size
-    int gtDataSize = gtData.size();
-    MPI_Bcast(&gtDataSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    std::cout << "[Process " << world_rank << "] Ground truth data size: " << gtDataSize << "\n";
-
-    // Divide the dataset among processes
-    std::vector<std::string> imageNames;
-    if (world_rank == 0) {
         for (const auto& entry : gtData) {
             imageNames.push_back(entry.first);
         }
+
     }
+    
+    if (parameters["parallel_ht_type"] != "None"){
 
-    // Broadcast the image names
-    imageNames.resize(gtDataSize);
-    for (int i = 0; i < gtDataSize; ++i) {
-        char buffer[256];
-        if (world_rank == 0) {
-            strncpy(buffer, imageNames[i].c_str(), 256);
+        // Broadcast ground truth data size
+        int gtDataSize = gtData.size();
+        MPI_Bcast(&gtDataSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        // Broadcast the image names
+        imageNames.resize(gtDataSize);
+        for (int i = 0; i < gtDataSize; ++i) {
+            char buffer[256];
+            if (world_rank == 0) {
+                strncpy(buffer, imageNames[i].c_str(), 256);
+            }
+            MPI_Bcast(buffer, 256, MPI_CHAR, 0, MPI_COMM_WORLD);
+            if (world_rank != 0) {
+                imageNames[i] = buffer;
+            }
         }
-        MPI_Bcast(buffer, 256, MPI_CHAR, 0, MPI_COMM_WORLD);
-        if (world_rank != 0) {
-            imageNames[i] = buffer;
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        // Each process prints its assigned images for debugging
+        std::cout << "[Process " << world_rank << "] Assigned images: ";
+        for (int i = world_rank; i < static_cast<int>(imageNames.size()); i += world_size) {
+            std::cout << imageNames[i] << " ";
         }
+        std::cout << "\n";
+
+        MPI_Barrier(MPI_COMM_WORLD);
+
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-
+    else
+        world_size = 1;
+    
     // Each process handles a subset of the dataset
     for (int i = world_rank; i < static_cast<int>(imageNames.size()); i += world_size) {
         const std::string imageName = imageNames[i];
@@ -281,17 +296,16 @@ void processDataset(std::unordered_map<std::string, std::string>& parameters) {
         parameters["image_name"] = imageName.substr(0, imageName.find_last_of("."));
         std::string inputImage = parameters["input"] + imageName;
 
-        std::cout << "[Process " << world_rank << "] Reading image: " << inputImage << "\n";
         Image img = readImage(inputImage);
         Image imgCopy = readImage(inputImage);
 
         if (verbose) 
             std::cout << "[Process " << world_rank << "] Image read successfully: " << inputImage << std::endl;
         
-        preprocessImage(img, parameters, true);
+        preprocessImage(img, parameters, false);
         preprocessingTimes.push_back(std::stod(parameters["preprocessingDuration"]));
 
-        segments = HoughTransformation(img, parameters, true);
+        segments = HoughTransformation(img, parameters, false);
         htTimes.push_back(std::stod(parameters["htDuration"]));
 
         drawLinesOnImage(gtSegments, imgCopy, 1);
@@ -311,10 +325,6 @@ void processDataset(std::unordered_map<std::string, std::string>& parameters) {
         precisions.push_back(precision);
         recalls.push_back(recall);
 
-        if (verbose) {
-            std::cout << "[Process " << world_rank << "] Precision: " << precision << "\n";
-            std::cout << "[Process " << world_rank << "] Recall: " << recall << "\n";
-        }
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -325,17 +335,26 @@ void processDataset(std::unordered_map<std::string, std::string>& parameters) {
     double local_recall_sum = std::accumulate(recalls.begin(), recalls.end(), 0.0);
     double local_preprocessing_time_sum = std::accumulate(preprocessingTimes.begin(), preprocessingTimes.end(), 0.0);
     double local_ht_time_sum = std::accumulate(htTimes.begin(), htTimes.end(), 0.0);
-
-    // Gather counts and sums from all processes
     double global_precision_sum, global_recall_sum, global_preprocessing_time_sum, global_ht_time_sum;
     int local_size = precisions.size();
     int global_size;
+    
+    if (parameters["parallel_ht_type"] != "None"){
 
-    MPI_Reduce(&local_precision_sum, &global_precision_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&local_recall_sum, &global_recall_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&local_preprocessing_time_sum, &global_preprocessing_time_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&local_ht_time_sum, &global_ht_time_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&local_size, &global_size, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+        // Gather counts and sums from all processes
+        MPI_Reduce(&local_precision_sum, &global_precision_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&local_recall_sum, &global_recall_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&local_preprocessing_time_sum, &global_preprocessing_time_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&local_ht_time_sum, &global_ht_time_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&local_size, &global_size, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    }
+    else{
+        global_precision_sum = local_precision_sum;
+        global_recall_sum = local_recall_sum;
+        global_preprocessing_time_sum = local_preprocessing_time_sum;
+        global_ht_time_sum = local_ht_time_sum;
+        global_size = local_size;
+    }
 
     if (world_rank == 0) {
         parameters["precision"] = std::to_string(global_precision_sum / global_size);
@@ -346,12 +365,5 @@ void processDataset(std::unordered_map<std::string, std::string>& parameters) {
 
         auto endTime = MPI_Wtime();
         parameters["dataset_processing_time"] = std::to_string(endTime - startTime);
-
-        std::cout << "\n[Process 0] Evaluation Complete:\n";
-        std::cout << " - Avg. Preprocessing Duration : " << parameters["preprocessingDuration"] << " ms\n";
-        std::cout << " - Avg. HT Duration            : " << parameters["htDuration"] << " ms\n";
-        std::cout << " - Avg. Precision              : " << parameters["precision"] << "\n";
-        std::cout << " - Avg. Recall                 : " << parameters["recall"] << "\n";
-        std::cout << " - Total Processing Time       : " << parameters["dataset_processing_time"] << " ms\n";
     }
 }

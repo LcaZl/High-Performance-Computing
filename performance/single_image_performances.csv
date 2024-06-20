@@ -1,0 +1,8 @@
+total_duration,htDuration,parallel_ht_type,HT_version,number_processes,pbs_ncpus,pbs_select,ppht_line_gap,sampling_rate,cluster_rho_threshold,cluster_similar_lines,cluster_theta_threshold,run_for,preprocessingDuration,convert_output,histogram_equalization,ppht_line_len,gb_kernel_size,ht_version,gaussian_blur,parallel_preprocessing,hough_vote_threshold,parallel_ht_line_extraction,omp_threads,parallel_ht,gb_sigma,greyscale_conversion,sobel_edge_detection,pbs_mem,sed_threshold,image_name,detection_distance_threshold,sed_scale_factor,hough_theta
+3.130316,0.000003,,,1,1,1,1,55,10.0,true,5.0,single_image_test,0.770576,true,false,30,7,PHT,false,false,50,None,10,None,1.9,true,false,4,100,img_synthetic_50m,5,5,360
+7.313174,0.000003,,,1,1,1,5,80,5.0,true,2.0,single_image_test,5.989545,true,true,20,7,PHT,true,false,110,None,10,None,1.9,true,true,4,150,bike,5,1,180
+7.450516,0.000002,,1,1,1,5,80,5.0,true,2.0,single_image_test,6.129379,true,true,HT,bike,5,1,false,110,None,20,7,10,None,1.9,true,true,true,4,150,180
+8.465799,0.742277,1,1,1,5,80,5.0,true,2.0,single_image_test,6.120341,true,true,None,HT,bike,5,1,false,110,20,7,10,None,1.9,true,true,true,4,150,,180
+77.160409,0.641990,1,1,1,5,80,5.0,true,2.0,single_image_test,65.017249,true,true,None,HT,img_synthetic_50m,5,1,false,110,20,7,10,None,1.9,true,true,true,4,150,,180
+8.551517,1.555892,1,1,1,1,55,10.0,true,5.0,single_image_test,1.690059,true,false,None,HT,img_synthetic_50m,5,5,false,50,30,7,10,None,1.9,true,false,false,4,100,,360
+9.472102,1.443186,1,1,1,1,55,10.0,true,5.0,single_image_test,1.677664,true,false,None,PHT,img_synthetic_25m,5,5,false,50,30,7,10,None,1.9,true,false,false,4,100,,360

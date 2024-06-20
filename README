@@ -26,11 +26,10 @@ _______________________________________________________________
 
 _______________________________________________________________
 |                                                              |
-|                Compile program - HPC Cluster                 |
+|                      Compile program                         |
 |______________________________________________________________|
 CODE IN: src/
 
-- HPC CLUSTER
 1 - Load modules
 [bash]
 module load gcc91
@@ -43,15 +42,8 @@ mpic++ -g -Wall -fopenmp -o HoughTransform main.cpp src/*.cpp
 
 _______________________________________________________________
 |                                                              |
-|           Execute program - Locally & HPC Cluster            |
+|                      Execute program                         |
 |______________________________________________________________|
-
-- LOCALLY
-
-[bash]
-./HoughTransform parameters
-
-- HPC CLUSTER
 
 [bash]
 qsub HoughTransform.sh
@@ -114,7 +106,7 @@ _______________________________________________________________
 |______________________________________________________________|
 CODE IN: dataset/
 
-It"s possibile to generate a dataset of the specified number of images. Each image will contain segments, with a random orientation and length.
+It's possibile to generate a dataset of the specified number of images. Each image will contain segments, with a random orientation and length.
 The resolution of images can be controlled and also the maximum number of lines in images (will be between 1 and the specified maximum, randomly).
 
 1 - Set the dataset parameters inside generate_dataset.py 
@@ -133,7 +125,7 @@ CODE IN: dataset/
 
 1  - Follow step 1 of "Image converter - How to use - HPC cluster" section to create python environment with openCV.
 
-2 - Set the dataset parameters inside generate_dataset.py 
+2 - Set the dataset parameters inside dataset/generate_dataset.py file.
 
 3 - Generate the dataset using generate_dataset.sh script.
 
@@ -150,7 +142,30 @@ _______________________________________________________________
 It contains different parameters that allow to control different aspects of the program.
 A single executable can be runned more times with totally different parameters.
 
-"parameters_configurations": contains a version of the parameters file for each image in "dataset/images/" and for each synthetic dataset.
+"parameters_configurations": contains a version of the parameters file for each image in "dataset/images/" and for each synthetic dataset. The parameters regard only a subset of them, the ones that influece the preprocessing operations, HT configuration and clustering.
+
+Example:
+
+Previous parameters can be setted indipendently.
+...
+greyscale_conversion=true
+gaussian_blur=false
+gb_kernel_size=7
+gb_sigma=1.9
+histogram_equalization=false
+sobel_edge_detection=true
+sed_threshold=100
+sed_scale_factor=5
+hough_vote_threshold=110
+hough_theta=240
+cluster_similar_lines=true
+cluster_theta_threshold=5.0
+cluster_rho_threshold=10.0
+sampling_rate=55
+ppht_line_gap=5
+ppht_line_len=30
+detection_distance_threshold=5
+
 
 _______________________________________________________________
 |                                                              |
@@ -172,11 +187,11 @@ _______________________________________________________________
             PPHT: Progressive Probabilistic Hough Transform.
         Values: HT, PHT, PPHT
 
-    parallel
+    parallel_preprocessing
         Description: Indicates whether the execution will be parallelized (where necessary) or strictly serial.
         Values: true, false
 
-    parallel_type
+    parallel_ht_type
         Description: Specifies the type of parallelization to use.
         Values: openMP, MPI
 

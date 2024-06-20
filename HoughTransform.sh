@@ -1,10 +1,10 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=1:mem=4gb
-#PBS -l walltime=0:01:00
+#PBS -l walltime=0:02:00
 #PBS -N ht
 #PBS -q short_cpuQ
-#PBS -o ht.out
-#PBS -e ht.err
+#PBS -o output/ht.out
+#PBS -e output/ht.err
 
 module load python-3.7.2
 module load gcc91
@@ -19,14 +19,16 @@ export PBS_SELECT=$(cat $PBS_NODEFILE | sort | uniq | wc -l)
 export PBS_NCPUS=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.ncpus = )\d+')
 export PBS_MEM=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.mem = )\d+' | sed 's/gb//')
 export OMP_PLACES=threads
+export NP_VALUE=1
 
-mpiexec -np $PBS_NCPUS ./HPC/HoughTransform HPC/parameters
+mpiexec -np $NP_VALUE ./HPC/HoughTransform HPC/parameters
 
 # Unset the environment variables and deactivate virtual environment
 unset PBS_SELECT
 unset PBS_NCPUS
 unset PBS_MEM
 unset TOTAL_PROCS
+unset NP_VALUE
 deactivate
 
 # MPIEXEC

@@ -13,7 +13,7 @@ module load python-3.7.2
 source cv2/bin/activate
 
 # Run python script (in virtual environment)
-python HPC/openMP/dataset/generate_dataset.py
+python HPC/dataset/generate_dataset.py
 
 # Deactivate the environment
 deactivate
