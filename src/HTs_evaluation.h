@@ -4,7 +4,6 @@
 
 #include "image_preprocessing.h"
 
-
 /**
  * Computes the average Euclidean distance between two lines, given the four endpoints.
  *
@@ -29,6 +28,7 @@ double computeDistance(const Point &startA, const Point &endA, const Point &star
  * @return A tuple containing the precision and recall values.
  */
 std::tuple<double, double> evaluate(const std::vector<Segment> &gt_segments, const std::vector<Segment> &detectedSegments, double maxDistance, const std::string &version);
+
 /**
  * Processes the accumulator to find: detected lines, detected lines above threshold, average votes for all lines and maximum number of votes.
  *
@@ -37,29 +37,6 @@ std::tuple<double, double> evaluate(const std::vector<Segment> &gt_segments, con
  * @return A tuple containing the founded information about the accumulator.
  */
 std::tuple<int, int, int, double> analyzeAccumulator(const std::vector<std::vector<int>> &accumulator, int voteTreshold);
-
-/**
- * Draws a line from (x0, y0) to (x1, y1) using Bresenham's algorithm on RGB image data.
- * 
- * @param x0 Starting x-coordinate of the line.
- * @param y0 Starting y-coordinate of the line.
- * @param x1 Ending x-coordinate of the line.
- * @param y1 Ending y-coordinate of the line.
- * @param rgbData Reference to vector containing RGB image data.
- * @param width Width of the image in pixels.
- * @param height Height of the image in pixels.
- */
-void drawLine(int x0, int y0, int x1, int y1, std::vector<unsigned char> &rgbData, int width, int height, int color);
-
-/**
- * Draws lines detected with PPHT on an image.
- *
- * @param segments Vector of line segments detected by PPHT.
- * @param image Image object to be drawn upon.
- */
-void drawLinesOnImage(std::vector<Segment> &lines, Image &image, int color);
-
-
 
 /**
  * Calculates the intersection points of a line defined by its rho and theta parameters with the image boundaries.
@@ -83,5 +60,26 @@ std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width,
  * @return A vector of merged line segments.
  */
 std::vector<Segment> mergeSimilarLines(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters);
+
+/**
+ * Draws a line from (x0, y0) to (x1, y1) using Bresenham's algorithm on RGB image data.
+ * 
+ * @param x0 Starting x-coordinate of the line.
+ * @param y0 Starting y-coordinate of the line.
+ * @param x1 Ending x-coordinate of the line.
+ * @param y1 Ending y-coordinate of the line.
+ * @param rgbData Reference to vector containing RGB image data.
+ * @param width Width of the image in pixels.
+ * @param height Height of the image in pixels.
+ */
+void drawLine(int x0, int y0, int x1, int y1, std::vector<unsigned char> &rgbData, int width, int height, int color);
+
+/**
+ * Draws lines detected with PPHT on an image.
+ *
+ * @param segments Vector of line segments detected by PPHT.
+ * @param image Image object to be drawn upon.
+ */
+void drawLinesOnImage(std::vector<Segment> &lines, Image &image, int color);
 
 #endif

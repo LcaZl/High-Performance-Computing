@@ -19,12 +19,15 @@ int main(int argc, char* argv[]) {
 
     if (world_rank == 0)
         std::cout << "Starting the Hough Transform program" << std::endl; 
-    sleep(1); std::cout << "[PROCESS "<< world_rank << "] Started." << std::endl; sleep(1);
+        std::cout << "[PROCESS "<< world_rank << "] Started." << std::endl;
+    
+    MPI_Barrier(MPI_COMM_WORLD);
 
     try{
 
         // LOADING PROGRAM PARAMETERS AND SHARE THEM AMONG PROCESSES
         if (world_rank == 0){
+            
             totStart = MPI_Wtime();
 
             std::cout << "------ Program Parameters ------\n";
@@ -32,6 +35,11 @@ int main(int argc, char* argv[]) {
                 return 1;
             std::cout << "--------------------------------\n";
 
+            // Predefined configuration for dataset evaluation
+            // MPI for sample distribution, openMP for single sample HT
+            if (parameters["run_for"] == "dataset_evaluation")
+                parameters["parallel_ht_type"] = "openMP";
+            
             createOrEmptyDirectory(parameters["output_folder"]); // Empty specified output directory
             environmentInfo(parameters); // Print PBS & openMP environment information
 
@@ -60,6 +68,7 @@ int main(int argc, char* argv[]) {
                 img = readImage(parameters["input"]);
                 imgCopy = readImage(parameters["input"]);
                 std::cout << "Image read successfully: " << parameters["input"] << std::endl;
+
                 imageInfo(img);
                 preprocessImage(img, parameters, parameters["verbose"] == "true"); // Image prepared accordingly to parameters
 
@@ -111,7 +120,7 @@ int main(int argc, char* argv[]) {
             std::cout << "Specified parameter \'run_for\' is not valid. Allowed: single_image_test or dataset_evaluation\n\n";
         }
 
-        if (world_rank == 0){ // Output is converted accordingly to parameters and performance saved by node 0.
+        if (world_rank == 0){ // Output and performance metrics are saved accordingly to parameters by node 0.
 
             if (parameters["convert_output"] == "true"){
                 std::cout << "\n\nOutput images conversion to ." << parameters["conversion_format"] << " (from .pnm)" << std::endl;

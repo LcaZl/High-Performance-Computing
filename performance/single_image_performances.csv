@@ -1,5 +1,0 @@
-total_duration,htDuration,omp_threads,pbs_ncpus,ppht_line_gap,sampling_rate,cluster_rho_threshold,gb_sigma,ppht_line_len,gb_kernel_size,pbs_select,parallel,preprocessingDuration,convert_output,histogram_equalization,hough_vote_threshold,HT_version,image_name,detection_distance_threshold,sed_scale_factor,greyscale_conversion,gaussian_blur,sobel_edge_detection,cluster_similar_lines,pbs_mem,sed_threshold,parallel_type,hough_theta,run_for,cluster_theta_threshold
-9.154868,0.700329,1,1,10,100,5.0,1.9,30,7,1,true,5.747586,true,true,120,HT,bike,5,1,true,true,true,true,4,160,MPI,240,single_image_test,2.0
-7.426357,0.672977,1,1,10,100,5.0,1.9,30,7,1,false,5.610101,true,true,120,HT,bike,5,1,true,true,true,true,4,160,MPI,240,single_image_test,2.0
-16.464080,2.479151,1,1,1,10,100,5.0,30,7,2.0,single_image_test,9.227385,true,true,MPI,false,120,HT,bike,5,1,false,1.9,true,true,true,true,4,160,,240
-7.044800,0.591174,1,1,1,10,100,5.0,30,7,2.0,single_image_test,5.247991,true,true,MPI,false,120,HT,bike,5,1,false,1.9,true,true,true,true,4,160,,240

@@ -219,74 +219,12 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
     return segments;
 }
 
-void houghTransformInfo(std::unordered_map<std::string, std::string>& parameters){
-    std::cout   
-    << "--- Hough Transformation Parameters ----" << std::endl
-    << " - Version                 : " << parameters["HT_version"] << std::endl
-    << " - Probabilistic           : " << ((parameters["version"] == "PHT" || parameters["version"] == "PPHT") ? "Yes" : "No") << std::endl
-    << " - Parallel                : " << (parameters["parallel_ht"] == "true" ? "Enabled" : "Disabled") << std::endl
-    << " - Parallelization Library : " << parameters["parallel_ht_type"] << std::endl
-    << " - Threads                 : " << parameters["omp_threads"] << std::endl
-    << " - Vote threshold          : " << parameters["hough_vote_threshold"] << std::endl
-    << " - Theta                   : " << parameters["hough_theta"] << std::endl
-    << " - Sampling Rate           : " << parameters["sampling_rate"] << "% (only for probabilistic version)" << std::endl
-    << " - Line Length             : " << parameters["ppht_line_len"] << " (only for progressive probabilistic version)" << std::endl
-    << " - Line Gap                : " << parameters["ppht_line_gap"] << " (only for progressive probabilistic version)" << std::endl
-    << " - Clustering              : " << (parameters["cluster_similar_lines"] == "true" ? "Yes" : "No") << std::endl
-    << " - Cls. Rho Threshold      : " << parameters["cluster_rho_threshold"] << std::endl
-    << " - Cls. Theta Threshold    : " << parameters["cluster_theta_threshold"] << std::endl
-    << "----------------------------------------" << std::endl;
-
-}
-
-void loadGroundTruthData(const std::string &gtPath, std::unordered_map<std::string, std::vector<Segment>>& gtData, std::unordered_map<std::string, int>& gtLinesPerImage){
-
-    std::ifstream file(gtPath);
-    std::string line;
-
-    std::getline(file, line); // Header
-
-    while (std::getline(file, line)) {
-
-        std::istringstream iss(line);
-        std::string part;
-        std::vector<std::string> parts;
-
-        while (std::getline(iss, part, ','))
-            parts.push_back(part);
-        
-        if (parts.size() != 16) // ----------------------------------------------------------------------------------------- Update with number of dataset cols !
-            throw std::invalid_argument("Error: Incorrect number of fields in dataset line.");
-        
-
-        std::string imageName = parts[0];
-        int x1 = std::stoi(parts[1]);
-        int y1 = std::stoi(parts[2]);
-        int x2 = std::stoi(parts[3]);
-        int y2 = std::stoi(parts[4]);
-        int intersectionStartX = std::stoi(parts[9]);
-        int intersectionStartY = std::stoi(parts[10]);
-        int intersectionEndX = std::stoi(parts[11]);
-        int intersectionEndY = std::stoi(parts[12]);
-        int linesCount = std::stoi(parts[8]);
-        double intersectionRho = std::stod(parts[13]);
-        double rho = std::stod(parts[5]);
-        double thetaRad = std::stod(parts[6]);
-        double thetaDeg = std::stod(parts[7]);
-        double intersectionThetaRad = std::stod(parts[14]);
-        double intersectionThetaDeg = std::stod(parts[15]);
-
-        Segment gt_seg(Point(x1, y1), Point(x2, y2), rho, thetaRad, thetaDeg, Point(intersectionStartX, intersectionStartY), Point(intersectionEndX, intersectionEndY), intersectionRho, intersectionThetaRad, intersectionThetaDeg);
-
-        // Add the gt line segment to the corresponding image in the map
-        gtData[imageName].push_back(gt_seg);
-        gtLinesPerImage[imageName] = linesCount;
-    }
-}
 void processDataset(std::unordered_map<std::string, std::string>& parameters) {
+    
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    parameters["parllel_ht_type"] = "openMP";
 
     auto startTime = MPI_Wtime();
     const bool verbose = parameters["verbose"] == "true";

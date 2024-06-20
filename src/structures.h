@@ -113,11 +113,27 @@ struct Segment {
                 interThetaDeg(0) {}
 };
 
-
+/**
+ * Creates a custom MPI data type for the Segment structure to facilitate MPI communication.
+ * 
+ * @param segmentType Pointer to the MPI_Datatype to be created.
+ */
 void createSegmentMPIType(MPI_Datatype* segmentType);
 
+/**
+ * Deserializes a string into a map of parameters.
+ * 
+ * @param serializedParameters The string containing the serialized parameters.
+ * @return A map with the deserialized parameters.
+ */
 std::unordered_map<std::string, std::string> deserializeParameters(const std::string& serializedParameters);
 
+/**
+ * Serializes a map of parameters into a string.
+ * 
+ * @param parameters The map containing the parameters to serialize.
+ * @return A string with the serialized parameters.
+ */
 std::string serializeParameters(const std::unordered_map<std::string, std::string>& parameters);
 
 #endif

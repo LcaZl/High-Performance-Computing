@@ -12,13 +12,17 @@
 
 /**
  * Mean value of a vector. 
+ * @param values Values list.
+ * @return The mean value of the input series.
 */
-double calculateMean(const std::vector<double> &recalls);
+double calculateMean(const std::vector<double> &values);
 
 /**
  * Convert degree to radiants.
+ * @param degreeValues Velue in degree to convert to radiant.
+ * @return Input value in radiant
 */
-double degreeToRadiant(double degree_values);
+double degreeToRadiant(double degreeValues);
 
 /**
  * Computes the Euclidean distance between two points.
@@ -54,6 +58,13 @@ void printGaussianKernel(const std::vector<std::vector<float>> &kernel);
 */
 void printSegmentsInfo(const std::vector<Segment> &segments);
 
+/**
+ * Print the parameters of the Hough Transform.
+ * 
+ * @param parameters A map containing the parameters of the Hough Transform.
+ */
+void houghTransformInfo(std::unordered_map<std::string, std::string>& parameters);
+
 /***************************
  * Input/Output management *
 ****************************/
@@ -77,6 +88,22 @@ bool processInputs(int argc, char *argv[], std::unordered_map<std::string, std::
  */
 Image readImage(const std::string& imagePath);
 
+/**
+ * Load the ground truth data inside the provided unordered map (gtData).
+ * gtLinesPerImage is another map used to store pairs image/#lines.
+ * 
+ * @param gtPath File system path where the ground_truth.csv file is located.
+ * @param gtData Map that will contain a row for each line in each image of the dataset
+ * @param gtLinesPerImage Map that will contain the number of lines that each image contains.
+ * 
+ */
+void loadGroundTruthData(const std::string &gtPath, std::unordered_map<std::string, std::vector<Segment>>& gtData, std::unordered_map<std::string, int>& gtLinesPerImage);
+
+/**
+ * Save all the performance metrics into a structured .csv file for later inspection.
+ * 
+ * @param parameters map that contain the output path and the metrics to save.
+ */
 void savePerformance(const std::unordered_map<std::string, std::string> &parameters);
 
 /**

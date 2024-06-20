@@ -1,5 +1,127 @@
 #include "HTs.h"
 
+/**************
+ *   SERIAL   *
+***************/
+
+std::vector<std::vector<int>> houghTransform(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+
+    bool probabilistic = (parameters["version"] == "PHT" || parameters["version"] == "PPHT");
+    double thetaResolution = std::stod(parameters["hough_theta"]);
+    int samplingRate = std::stoi(parameters["sampling_rate"]);
+
+    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
+    int rhoSize = static_cast<int>(2 * rhoMax) + 1;
+    std::vector<std::vector<int>> accumulator(rhoSize, std::vector<int>(thetaResolution, 0));
+
+    std::random_device rd; // Seed with a non-deterministic value if available
+    std::mt19937 gen(rd());
+    // Distribution to control the sampling frequency of pixels
+    std::uniform_int_distribution<> dis(0, 100 / samplingRate - 1);
+
+    double centerX = image.width / 2.0;
+    double centerY = image.height / 2.0;
+
+    for (int y = 0; y < image.height; ++y) {
+        for (int x = 0; x < image.width; ++x) {
+            if ((!probabilistic && image.data[y * image.width + x] > 0) ||
+                (probabilistic && image.data[y * image.width + x] > 0 && dis(gen) == 0)
+            ) {
+                for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
+                    // thetaResolution is in degree, from parameters file.
+                    double thetaRad = thetaIndex * (M_PI / thetaResolution);
+                    double rho = (x - centerX) * cos(thetaRad) + (y - centerY) * sin(thetaRad);
+                    int rhoIndex = static_cast<int>(rho + rhoMax);
+                    if (rhoIndex >= 0 && rhoIndex < rhoSize) { // Ensure index is within bounds
+                        accumulator[rhoIndex][thetaIndex]++;
+                    }
+                }
+            }
+        }
+    }
+
+    return accumulator;
+}
+
+std::vector<Segment> linesExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+    std::vector<Segment> lines;
+    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
+    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
+    double thetaResolution = std::stod(parameters["hough_theta"]);
+
+    for (int rhoIndex = 0; rhoIndex < static_cast<int>(accumulator.size()); ++rhoIndex) {
+        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
+            if (accumulator[rhoIndex][thetaIndex] > voteThreshold) {
+                double thetaRad = thetaIndex * (M_PI / thetaResolution);
+                double thetaDeg = thetaRad * (180.0 / M_PI);
+                double rho = rhoIndex - rhoMax;
+
+                Point start, end;
+                std::tie(start, end) = calculateEndpoints(rho, thetaRad, image.width, image.height);
+                
+                lines.push_back(Segment(start, end, rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]));
+            }
+        }
+    }
+
+    return lines;
+}
+
+std::vector<Segment> linesProgressiveExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
+    std::vector<Segment> segments;
+    double centerX = image.width / 2.0;
+    double centerY = image.height / 2.0;
+    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
+    double thetaResolution = std::stod(parameters["hough_theta"]);
+    int lineGap = std::stoi(parameters["ppht_line_gap"]);
+    int lineLength = std::stoi(parameters["ppht_line_len"]);
+
+    for (size_t rhoIndex = 0; rhoIndex < accumulator.size(); ++rhoIndex) {
+        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
+            if (accumulator[rhoIndex][thetaIndex] > voteThreshold) {
+                double thetaRad = thetaIndex * (M_PI / thetaResolution);
+                double thetaDeg = thetaRad * (180.0 / M_PI);
+                double rho = rhoIndex - rhoMax;
+
+                double sinTheta = std::sin(thetaRad);
+                double cosTheta = std::cos(thetaRad);
+                std::vector<Point> linePoints;
+
+                // Scan through the image to collect points that are on the calculated line
+                for (int x = 0; x < image.width; ++x) {
+                    for (int y = 0; y < image.height; ++y) {
+                        if (image.data[y * image.width + x] > 0) {
+                            double calculatedRho = static_cast<double>((x - centerX) * cosTheta + (y - centerY) * sinTheta);
+                            if (std::abs(calculatedRho - rho) < 2) {  // Consider a tolerance for rho
+                                if (!linePoints.empty() && (std::abs(linePoints.back().x - x) > lineGap || std::abs(linePoints.back().y - y) > lineGap)) {
+                                    if (static_cast<int>(linePoints.size()) >= lineLength) {
+                                        // Save the segment if it's long enough
+                                        segments.push_back(Segment(linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]));
+                                    }
+                                    linePoints.clear();
+                                }
+                                linePoints.push_back(Point(x, y));
+                            }
+                        }
+                    }
+                }
+
+                // Check if there is a remaining valid segment
+                if (static_cast<int>(linePoints.size()) >= lineLength) {
+                    segments.push_back(Segment(linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]));
+                }
+            }
+        }
+    }
+
+    return segments;
+}
+
+/********************
+ *  PARALLEL - MPI  *
+*********************/
+
 std::vector<std::vector<int>> houghTransformParallel_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
     int world_size, world_rank;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -215,127 +337,9 @@ std::vector<Segment> linesProgressiveExtractionParallel_MPI(const std::vector<st
     return segments;
 }
 
-/**************
- *   SERIAL   *
-***************/
-
-std::vector<std::vector<int>> houghTransform(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
-
-    bool probabilistic = (parameters["version"] == "PHT" || parameters["version"] == "PPHT");
-    double thetaResolution = std::stod(parameters["hough_theta"]);
-    int samplingRate = std::stoi(parameters["sampling_rate"]);
-
-    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
-    int rhoSize = static_cast<int>(2 * rhoMax) + 1;
-    std::vector<std::vector<int>> accumulator(rhoSize, std::vector<int>(thetaResolution, 0));
-
-    std::random_device rd; // Seed with a non-deterministic value if available
-    std::mt19937 gen(rd());
-    // Distribution to control the sampling frequency of pixels
-    std::uniform_int_distribution<> dis(0, 100 / samplingRate - 1);
-
-    double centerX = image.width / 2.0;
-    double centerY = image.height / 2.0;
-
-    for (int y = 0; y < image.height; ++y) {
-        for (int x = 0; x < image.width; ++x) {
-            if ((!probabilistic && image.data[y * image.width + x] > 0) ||
-                (probabilistic && image.data[y * image.width + x] > 0 && dis(gen) == 0)
-            ) {
-                for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
-                    // thetaResolution is in degree, from parameters file.
-                    double thetaRad = thetaIndex * (M_PI / thetaResolution);
-                    double rho = (x - centerX) * cos(thetaRad) + (y - centerY) * sin(thetaRad);
-                    int rhoIndex = static_cast<int>(rho + rhoMax);
-                    if (rhoIndex >= 0 && rhoIndex < rhoSize) { // Ensure index is within bounds
-                        accumulator[rhoIndex][thetaIndex]++;
-                    }
-                }
-            }
-        }
-    }
-
-    return accumulator;
-}
-
-std::vector<Segment> linesExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
-    std::vector<Segment> lines;
-    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
-    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
-    double thetaResolution = std::stod(parameters["hough_theta"]);
-
-    for (int rhoIndex = 0; rhoIndex < static_cast<int>(accumulator.size()); ++rhoIndex) {
-        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
-            if (accumulator[rhoIndex][thetaIndex] > voteThreshold) {
-                double thetaRad = thetaIndex * (M_PI / thetaResolution);
-                double thetaDeg = thetaRad * (180.0 / M_PI);
-                double rho = rhoIndex - rhoMax;
-
-                Point start, end;
-                std::tie(start, end) = calculateEndpoints(rho, thetaRad, image.width, image.height);
-                
-                lines.push_back(Segment(start, end, rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]));
-            }
-        }
-    }
-
-    return lines;
-}
-
-std::vector<Segment> linesProgressiveExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
-    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
-    std::vector<Segment> segments;
-    double centerX = image.width / 2.0;
-    double centerY = image.height / 2.0;
-    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
-    double thetaResolution = std::stod(parameters["hough_theta"]);
-    int lineGap = std::stoi(parameters["ppht_line_gap"]);
-    int lineLength = std::stoi(parameters["ppht_line_len"]);
-
-    for (size_t rhoIndex = 0; rhoIndex < accumulator.size(); ++rhoIndex) {
-        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
-            if (accumulator[rhoIndex][thetaIndex] > voteThreshold) {
-                double thetaRad = thetaIndex * (M_PI / thetaResolution);
-                double thetaDeg = thetaRad * (180.0 / M_PI);
-                double rho = rhoIndex - rhoMax;
-
-                double sinTheta = std::sin(thetaRad);
-                double cosTheta = std::cos(thetaRad);
-                std::vector<Point> linePoints;
-
-                // Scan through the image to collect points that are on the calculated line
-                for (int x = 0; x < image.width; ++x) {
-                    for (int y = 0; y < image.height; ++y) {
-                        if (image.data[y * image.width + x] > 0) {
-                            double calculatedRho = static_cast<double>((x - centerX) * cosTheta + (y - centerY) * sinTheta);
-                            if (std::abs(calculatedRho - rho) < 2) {  // Consider a tolerance for rho
-                                if (!linePoints.empty() && (std::abs(linePoints.back().x - x) > lineGap || std::abs(linePoints.back().y - y) > lineGap)) {
-                                    if (static_cast<int>(linePoints.size()) >= lineLength) {
-                                        // Save the segment if it's long enough
-                                        segments.push_back(Segment(linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]));
-                                    }
-                                    linePoints.clear();
-                                }
-                                linePoints.push_back(Point(x, y));
-                            }
-                        }
-                    }
-                }
-
-                // Check if there is a remaining valid segment
-                if (static_cast<int>(linePoints.size()) >= lineLength) {
-                    segments.push_back(Segment(linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]));
-                }
-            }
-        }
-    }
-
-    return segments;
-}
-
-/**************
- *  PARALLEL  *
-***************/
+/********************
+ *  PARALLEL - OMP  *
+*********************/
 
 std::vector<std::vector<int>> houghTransformParallel_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
     // Center of the image
