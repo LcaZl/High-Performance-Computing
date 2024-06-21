@@ -8,7 +8,7 @@ import shutil
 num_images = 1 # Size of the dataset
 size = (10000,10000) # Images width and height
 output_dir = "HPC/dataset/images/synthetic_25m/" # Dataset directory
-max_lines_per_image = 100 # Number of lines per images in range [1, max_lines_per_image]
+max_lines_per_image = 20 # Number of lines per images in range [1, max_lines_per_image]
 
 # This function calculates the Hough transform parameters for a line.
 def calculate_line_intersections(x1, y1, x2, y2, width, height):
@@ -88,7 +88,7 @@ def generate_synthetic_image_and_ground_truth(width, height, max_lines=10):
     # Generate black background
     base_background = np.zeros((height, width, 3), dtype=np.uint8)
     ground_truth = []
-    line_count = np.random.randint(1, max_lines + 1)
+    line_count = max_lines #np.random.randint(1, max_lines + 1)
     
     for _ in range(line_count):
         x1, y1 = np.random.randint(0, width), np.random.randint(0, height)

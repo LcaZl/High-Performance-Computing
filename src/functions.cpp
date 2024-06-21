@@ -170,7 +170,7 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
     if (parameters["parallel_ht_type"] == "openMP" && world_rank == 0)
             std::tie(accumulator, segments) = houghTransformParallel_OMP(img, parameters);
     
-    else if (parameters["parallel_ht_type"] == "MPI"){
+    else if (parameters["parallel_ht_type"] == "MPI" || parameters["parallel_ht_type"] == "Hybrid"){
 
         if (world_rank == 0){
             serializedImage = img.serialize();
@@ -194,7 +194,10 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        std::tie(accumulator, segments) = houghTransformParallel_MPI(img, parameters);
+        std::tie(accumulator, segments) = parameters["parallel_ht_type"] == "MPI" ?
+        houghTransformParallel_MPI(img, parameters) :
+        houghTransformParallel_Hybrid(img, parameters);
+    
     }
     
     else if (parameters["parallel_ht_type"] == "None" && world_rank == 0)
@@ -204,14 +207,14 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
         auto endTime = MPI_Wtime();
 
         // Cluster lines if applicable
-        if (clustering && version != "PPHT" && world_rank == 0) {
+        if (clustering && world_rank == 0) {
             segments = mergeSimilarLines(segments, img, parameters);
         }
         parameters["htDuration"] = std::to_string(endTime - startTime);
 
         // Analyze accumulator
         std::tie(linesCount, maxVotes, linesAboveThreshold, averageVotes) = analyzeAccumulator(accumulator, voteThreshold);
-        std::cout 
+        std::cout << std::endl 
         << "HT for "<< parameters["image_name"] << std::endl
         << "  |- # Lines analyzed        : " << linesCount << std::endl
         << "  |- Max. Votes for a line   : " << maxVotes << std::endl

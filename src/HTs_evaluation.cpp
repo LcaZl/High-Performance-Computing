@@ -97,43 +97,91 @@ std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width,
     return {start, end};
 }
 
+double midpointDistance(const Point& aStart, const Point& aEnd, const Point& bStart, const Point& bEnd) {
+    Point aMid((aStart.x + aEnd.x) / 2, (aStart.y + aEnd.y) / 2);
+    Point bMid((bStart.x + bEnd.x) / 2, (bStart.y + bEnd.y) / 2);
+    return std::hypot(aMid.x - bMid.x, aMid.y - bMid.y);
+}
+
 std::vector<Segment> mergeSimilarLines(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
     std::vector<Segment> mergedLines;
     double thetaThresholdDegrees = std::stod(parameters["cluster_theta_threshold"]);
     double rhoThreshold = std::stod(parameters["cluster_rho_threshold"]);
     const double thetaThresholdRadians = degreeToRadiant(thetaThresholdDegrees);
-    Point newStart, newEnd;
+    std::string HT_version = parameters["HT_version"];
+
+    // Step 1: Group lines that are similar in terms of rho and theta
+    std::vector<std::vector<Segment>> groups;
 
     for (auto &line : lines) {
         bool merged = false;
-        for (auto& mergedLine : mergedLines) {
-            if (std::abs(mergedLine.rho - line.rho) < rhoThreshold &&
-                std::abs(mergedLine.thetaRad - line.thetaRad) < thetaThresholdRadians) {
-                // Merge lines by averaging the parameters and summing the votes
-                int totalVotes = mergedLine.votes + line.votes;
-                double newRho = (mergedLine.rho * mergedLine.votes + line.rho * line.votes) / totalVotes;
-                double newThetaRad = (mergedLine.thetaRad * mergedLine.votes + line.thetaRad * line.votes) / totalVotes;
-
-                // Recalculate endpoints based on the new rho and theta
-                std::tie(newStart, newEnd) = calculateEndpoints(newRho, newThetaRad, image.width, image.height);
-
-                // Update merged line
-                mergedLine.start = newStart;
-                mergedLine.end = newEnd;
-                mergedLine.rho = newRho;
-                mergedLine.thetaRad = newThetaRad;
-                mergedLine.thetaDeg = newThetaRad * (180 / M_PI); // Keep theta in degrees for the Segment struct
-                mergedLine.votes = totalVotes;
-                merged = true;
-                break;
+        for (auto& group : groups) {
+            if (HT_version == "PPHT") {
+                // Use midpoint distance for PPHT
+                double distance = midpointDistance(group[0].start, group[0].end, line.start, line.end);
+                if (distance < rhoThreshold) {
+                    group.push_back(line);
+                    merged = true;
+                    break;
+                }
+            } else {
+                // Use rho and theta for HT and PHT
+                if (std::abs(group[0].rho - line.rho) < rhoThreshold &&
+                    std::abs(group[0].thetaRad - line.thetaRad) < thetaThresholdRadians) {
+                    group.push_back(line);
+                    merged = true;
+                    break;
+                }
             }
         }
         if (!merged) {
-            mergedLines.push_back(line);
+            groups.push_back({line});
         }
     }
+
+    // Step 2: For each group, calculate the average line properties and create the merged line
+    for (auto& group : groups) {
+        if (group.size() == 1) {
+            mergedLines.push_back(group[0]);
+        } else {
+            int totalVotes = 0;
+            double sumRho = 0.0, sumThetaRad = 0.0;
+            Point sumStart(0, 0), sumEnd(0, 0);
+
+            // Summing properties weighted by votes
+            for (auto& line : group) {
+                totalVotes += line.votes;
+                sumRho += line.rho * line.votes;
+                sumThetaRad += line.thetaRad * line.votes;
+                sumStart.x += line.start.x * line.votes;
+                sumStart.y += line.start.y * line.votes;
+                sumEnd.x += line.end.x * line.votes;
+                sumEnd.y += line.end.y * line.votes;
+            }
+
+            // Calculating weighted averages
+            double avgRho = sumRho / totalVotes;
+            double avgThetaRad = sumThetaRad / totalVotes;
+            Point avgStart(sumStart.x / totalVotes, sumStart.y / totalVotes);
+            Point avgEnd(sumEnd.x / totalVotes, sumEnd.y / totalVotes);
+
+            if (HT_version == "PPHT") {
+                // For PPHT, use the averaged start and end points directly
+                mergedLines.push_back({avgStart, avgEnd, avgRho, avgThetaRad, avgThetaRad * (180 / M_PI), totalVotes});
+            } else {
+                // For HT and PHT, recalculate the endpoints
+                Point newStart, newEnd;
+                std::tie(newStart, newEnd) = calculateEndpoints(avgRho, avgThetaRad, image.width, image.height);
+                mergedLines.push_back({newStart, newEnd, avgRho, avgThetaRad, avgThetaRad * (180 / M_PI), totalVotes});
+            }
+        }
+    }
+
     return mergedLines;
 }
+
+
+
 
 void drawLine(int x0, int y0, int x1, int y1, std::vector<unsigned char>& rgb_data, int width, int height, int color) {
     int dx = std::abs(x1 - x0), sx = x0 < x1 ? 1 : -1;

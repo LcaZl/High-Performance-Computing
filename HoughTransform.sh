@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=1:mem=4gb
-#PBS -l walltime=0:02:00
+#PBS -l walltime=0:50:00
 #PBS -N ht
 #PBS -q short_cpuQ
 #PBS -o output/ht.out
@@ -19,6 +19,7 @@ export PBS_SELECT=$(cat $PBS_NODEFILE | sort | uniq | wc -l)
 export PBS_NCPUS=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.ncpus = )\d+')
 export PBS_MEM=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.mem = )\d+' | sed 's/gb//')
 export OMP_PLACES=threads
+
 export NP_VALUE=1
 
 mpiexec -np $NP_VALUE ./HPC/HoughTransform HPC/parameters

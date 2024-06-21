@@ -37,7 +37,7 @@ std::vector<Segment> linesExtraction(const std::vector<std::vector<int>>& accumu
  * @param parameters A map containing parameters for the Hough Transform.
  * @return Vector of extracted line segments.
  */
-std::vector<Segment> linesProgressiveExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::vector<Segment> linesProgressiveExtraction(std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /********************
  *  PARALLEL - MPI  *
@@ -107,5 +107,8 @@ std::vector<Segment> linesExtractionParallel_OMP(const std::vector<std::vector<i
  * @return Vector of extracted line segments.
  */
 std::vector<Segment> linesProgressiveExtractionParallel_OMP(const std::vector<std::vector<int>> &accumulator, const Image &image, std::unordered_map<std::string, std::string>& parameters);
+
+
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransformParallel_Hybrid(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 #endif

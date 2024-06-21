@@ -131,7 +131,7 @@ bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::
             }
         }
     }
-    std::cout << std::endl;
+
     std::string inputPath(parameters["input"]);
     if (!fileExists(inputPath)) { // Check if file exists
         std::cerr << "File does not exist.\nInput path:" << inputPath << std::endl;
