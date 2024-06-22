@@ -9,15 +9,16 @@ histogram_equalization=false
 sobel_edge_detection=true
 sed_threshold=100
 sed_scale_factor=5
-hough_vote_threshold=110
+hough_vote_threshold=120
 hough_theta=240
 cluster_similar_lines=true
 cluster_theta_threshold=5.0
 cluster_rho_threshold=10.0
 sampling_rate=55
-ppht_line_gap=5
+ppht_line_gap=10
 ppht_line_len=30
 detection_distance_threshold=5
+
 
 --------------------------------------------------------- ROADS
 greyscale_conversion=true

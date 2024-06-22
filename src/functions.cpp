@@ -194,9 +194,8 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        std::tie(accumulator, segments) = parameters["parallel_ht_type"] == "MPI" ?
-        houghTransformParallel_MPI(img, parameters) :
-        houghTransformParallel_Hybrid(img, parameters);
+        std::tie(accumulator, segments) = houghTransformParallel_MPI(img, parameters);
+        //houghTransformParallel_Hybrid(img, parameters);
     
     }
     

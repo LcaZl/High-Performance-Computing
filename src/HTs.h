@@ -109,6 +109,7 @@ std::vector<Segment> linesExtractionParallel_OMP(const std::vector<std::vector<i
 std::vector<Segment> linesProgressiveExtractionParallel_OMP(const std::vector<std::vector<int>> &accumulator, const Image &image, std::unordered_map<std::string, std::string>& parameters);
 
 
-std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransformParallel_Hybrid(const Image& image, std::unordered_map<std::string, std::string>& parameters);
+//std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransformParallel_Hybrid(const Image& image, std::unordered_map<std::string, std::string>& parameters);
+//std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 #endif

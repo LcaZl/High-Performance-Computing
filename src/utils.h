@@ -2,9 +2,7 @@
 #define UTILS_H
 
 #include "structures.h"
-#ifdef _OPENMP
-    #include <omp.h>
-#endif
+
 
 /*********************
  * Utility functions *

@@ -391,6 +391,7 @@ std::vector<Segment> linesProgressiveExtractionParallel_OMP(const std::vector<st
 /***********************
  *  PARALLEL - Hybrid  *
 ************************/
+/*
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransformParallel_Hybrid(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
     
     int world_size, world_rank;
@@ -464,3 +465,89 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransformPa
 
     return { accumulator, segments };
 }
+
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+    int thetaResolution = std::stoi(parameters["hough_theta"]);
+    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
+    int rhoSize = static_cast<int>(2 * rhoMax) + 1;
+    std::vector<std::vector<int>> accumulator(rhoSize, std::vector<int>(thetaResolution, 0));
+    std::vector<Segment> segments;
+
+    double centerX = image.width / 2.0;
+    double centerY = image.height / 2.0;
+    int lineGap = std::stoi(parameters["ppht_line_gap"]);
+    int lineLength = std::stoi(parameters["ppht_line_len"]);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, image.width * image.height - 1);
+    std::vector<int> points(image.width * image.height);
+    std::iota(points.begin(), points.end(), 0);
+
+    int voteThreshold = 1; // Initial threshold
+
+    while (!points.empty()) {
+        int randomIndex = dis(gen) % points.size();
+        int randomPoint = points[randomIndex];
+        std::swap(points[randomIndex], points.back());
+        points.pop_back();
+
+        int x = randomPoint % image.width;
+        int y = randomPoint / image.width;
+
+        if (image.data[y * image.width + x] > 0) {
+            for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
+                double thetaRad = thetaIndex * (M_PI / thetaResolution);
+                double rho = (x - centerX) * std::cos(thetaRad) + (y - centerY) * std::sin(thetaRad);
+                int rhoIndex = static_cast<int>(rho + rhoMax);
+                if (rhoIndex >= 0 && rhoIndex < rhoSize) {
+                    accumulator[rhoIndex][thetaIndex]++;
+                    if (accumulator[rhoIndex][thetaIndex] > voteThreshold) {
+                        double thetaDeg = thetaRad * (180.0 / M_PI);
+                        double sinTheta = std::sin(thetaRad);
+                        double cosTheta = std::cos(thetaRad);
+                        std::vector<Point> linePoints;
+
+                        for (int xi = std::max(0, x - lineGap); xi < std::min(image.width, x + lineGap); ++xi) {
+                            for (int yi = std::max(0, y - lineGap); yi < std::min(image.height, y + lineGap); ++yi) {
+                                if (image.data[yi * image.width + xi] > 0) {
+                                    double calculatedRho = (xi - centerX) * cosTheta + (yi - centerY) * sinTheta;
+                                    if (std::abs(calculatedRho - rho) < 2) {
+                                        if (!linePoints.empty() && (std::abs(linePoints.back().x - xi) > lineGap || std::abs(linePoints.back().y - yi) > lineGap)) {
+                                            if (static_cast<int>(linePoints.size()) >= lineLength) {
+                                                segments.push_back(Segment{linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]});
+                                            }
+                                            linePoints.clear();
+                                        }
+                                        linePoints.push_back(Point{xi, yi});
+                                    }
+                                }
+                            }
+                        }
+
+                        if (static_cast<int>(linePoints.size()) >= lineLength) {
+                            segments.push_back(Segment{linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]});
+                        }
+
+                        for (const auto& point : linePoints) {
+                            int unvoteX = point.x;
+                            int unvoteY = point.y;
+                            double unvoteRho = (unvoteX - centerX) * cosTheta + (unvoteY - centerY) * sinTheta;
+                            int unvoteRhoIndex = static_cast<int>(unvoteRho + rhoMax);
+                            if (unvoteRhoIndex >= 0 && unvoteRhoIndex < rhoSize) {
+                                accumulator[unvoteRhoIndex][thetaIndex]--;
+                            }
+                        }
+
+                        // Dynamic adjustment of the vote threshold based on the binomial distribution approximation
+                        double expectedNoiseVotes = voteThreshold * 0.99; // Adjust the confidence level if necessary
+                        voteThreshold = std::max(voteThreshold, static_cast<int>(std::round(expectedNoiseVotes)));
+                    }
+                }
+            }
+        }
+    }
+
+    return {accumulator, segments};
+}
+*/

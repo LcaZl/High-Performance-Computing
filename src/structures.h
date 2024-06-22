@@ -101,18 +101,16 @@ struct Segment {
     double interThetaRad;
     double interThetaDeg;
 
-    int supp;
-
     Segment(Point s, Point e, double r, double tr, double td, int v) :
-        start(s), end(e), rho(r), thetaRad(tr), thetaDeg(td), votes(v), intersectionStart(Point(0,0)), intersectionEnd(Point(0,0)), interRho(0), interThetaRad(0), interThetaDeg(0), supp(0){}
+        start(s), end(e), rho(r), thetaRad(tr), thetaDeg(td), votes(v), intersectionStart(Point(0,0)), intersectionEnd(Point(0,0)), interRho(0), interThetaRad(0), interThetaDeg(0){}
 
     Segment(Point s, Point e, double r, double tr, double td, Point i1, Point i2, double interR, double interTr, double interTd) :
-        start(s), end(e), rho(r), thetaRad(tr), thetaDeg(td), votes(0), intersectionStart(i1), intersectionEnd(i2), interRho(interR), interThetaRad(interTr), interThetaDeg(interTd), supp(0){}
+        start(s), end(e), rho(r), thetaRad(tr), thetaDeg(td), votes(0), intersectionStart(i1), intersectionEnd(i2), interRho(interR), interThetaRad(interTr), interThetaDeg(interTd){}
 
     Segment() : start(Point(0, 0)), end(Point(0, 0)), rho(0), thetaRad(0),
                 thetaDeg(0), votes(0), intersectionStart(Point(0, 0)),
                 intersectionEnd(Point(0, 0)), interRho(0), interThetaRad(0),
-                interThetaDeg(0), supp(0) {}
+                interThetaDeg(0) {}
 };
 
 /**
