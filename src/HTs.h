@@ -16,28 +16,17 @@
  * @param parameters A map containing parameters for the Hough Transform.
  * @return A 2D vector representing the accumulator array.
  */
-std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransform(const Image& image, std::unordered_map<std::string, std::string>& parameters);
-
-/**
- * Extracts line segments from a Hough Transform (HT) accumulator.
- *
- * @param accumulator 2D vector representing the HT accumulator space.
- * @param image Reference to the image from which lines are to be extracted.
- * @param parameters A map containing parameters for the Hough Transform.
- * @return Vector of extracted line segments.
- */
-std::vector<Segment> linesExtraction(const std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /**
  * Extracts line segments using a progressive approach to exactly identify them.
  * The basi HT version for this approach is a PHT.
  *
- * @param accumulator 2D vector representing the HT accumulator space.
- * @param image Reference to the image from which lines are to be extracted.
+ * @param image Reference to the image object to analyze.
  * @param parameters A map containing parameters for the Hough Transform.
- * @return Vector of extracted line segments.
+ * @return A 2D vector representing the accumulator array.
  */
-std::vector<Segment> linesProgressiveExtraction(std::vector<std::vector<int>>& accumulator, const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /********************
  *  PARALLEL - MPI  *
@@ -51,8 +40,9 @@ std::vector<Segment> linesProgressiveExtraction(std::vector<std::vector<int>>& a
  * @param parameters A map containing parameters for the Hough Transform.
  * @return A 2D vector representing the accumulator array.
  */
-std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> houghTransformParallel_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 /**
  * Extracts line segments from a Hough Transform (HT) accumulator in parallel using openMP.
  *

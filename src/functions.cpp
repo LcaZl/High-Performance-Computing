@@ -194,19 +194,28 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
 
         MPI_Barrier(MPI_COMM_WORLD);
 
-        std::tie(accumulator, segments) = houghTransformParallel_MPI(img, parameters);
+        if (parameters["HT_version"] == "PPHT")
+                std::tie(accumulator, segments) = PPHT_MPI(img, parameters);
+        else
+            std::tie(accumulator, segments) = HT_PHT_MPI(img, parameters);
+            
         //houghTransformParallel_Hybrid(img, parameters);
-    
     }
     
-    else if (parameters["parallel_ht_type"] == "None" && world_rank == 0)
-            std::tie(accumulator, segments) = houghTransform(img, parameters);
+    else if (parameters["parallel_ht_type"] == "None" && world_rank == 0){
+
+        if (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT")
+            std::tie(accumulator, segments) = HT_PHT(img, parameters);
+        else
+            std::tie(accumulator, segments) = PPHT(img, parameters);
+    }
+
     
     if (world_rank == 0){
         auto endTime = MPI_Wtime();
 
         // Cluster lines if applicable
-        if (clustering && world_rank == 0) {
+        if (parameters["HT_version"] != "PPHT" && clustering && world_rank == 0) {
             segments = mergeSimilarLines(segments, img, parameters);
         }
         parameters["htDuration"] = std::to_string(endTime - startTime);
