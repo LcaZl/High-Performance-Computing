@@ -11,32 +11,53 @@ double computeDistance(const Point &startA, const Point &endA, const Point &star
 
 }
 
-std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, const std::vector<Segment>& detectedSegments, double maxDistance, const std::string& version) {
+std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, std::vector<Segment>& detectedSegments, std::unordered_map<std::string, std::string>& parameters) {
     int true_positives = 0;
-    std::vector<bool> detected_matched(detectedSegments.size(), false);
+    int false_positives = 0;
+    int false_negatives = 0;
+    double tp_distance = std::stod(parameters["tp_distance"]);
 
-    for (const auto& gt : gt_segments) {
-        for (size_t i = 0; i < detectedSegments.size(); ++i) {
+    // Create a copy of the ground truth segments that we can modify
+    std::vector<Segment> remaining_gt_segments = gt_segments;
+
+    for (const auto& detected : detectedSegments) {
+        bool matched = false;
+        for (auto it = remaining_gt_segments.begin(); it != remaining_gt_segments.end(); ++it) {
             double distance;
+            if (parameters["HT_version"] == "PPHT")
+                distance = computeDistance(it->start, it->end, detected.start, detected.end);
+            else if (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT")
+                distance = computeDistance(it->intersectionStart, it->intersectionEnd, detected.start, detected.end);
 
-            if (version == "PPHT")
-                distance = computeDistance(gt.start, gt.end, detectedSegments[i].start, detectedSegments[i].end);
-            else
-                distance = computeDistance(gt.intersectionStart, gt.intersectionEnd, detectedSegments[i].start, detectedSegments[i].end);
-
-            if (!detected_matched[i] && distance < maxDistance)
-            {
+            if (distance < tp_distance) {
                 true_positives++;
-                detected_matched[i] = true;
-                break; // Match each gt segment to only one detected segment
-                }
+                remaining_gt_segments.erase(it); // Remove the matched ground truth segment
+                matched = true;
+                break; // Match each detected segment to only one ground truth segment
+            }
+        }
+        if (!matched) {
+            false_positives++;
         }
     }
+
+    // Remaining unmatched ground truth segments are false negatives
+    false_negatives = remaining_gt_segments.size();
 
     int total_detected = detectedSegments.size();
     int total_ground_truth = gt_segments.size();
     double precision = total_detected > 0 ? static_cast<double>(true_positives) / total_detected : 0;
     double recall = total_ground_truth > 0 ? static_cast<double>(true_positives) / total_ground_truth : 0;
+
+    parameters["recall"] = std::to_string(recall);
+    parameters["precision"] = std::to_string(precision);
+
+    std::cout 
+        << " |- Total detection: " << total_detected << std::endl
+        << " |- Total GT       : " << total_ground_truth << std::endl
+        << " |- True Positive  : " << true_positives << std::endl
+        << " |- False Positive : " << false_positives << std::endl
+        << " |- False Negative : " << false_negatives << std::endl;
 
     return {precision, recall};
 }

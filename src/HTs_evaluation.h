@@ -27,8 +27,7 @@ double computeDistance(const Point &startA, const Point &endA, const Point &star
  * With HT and PHT are used the point of intersection of the segment projected to the image boundaries. With PPHT the exact two points that define the segment.
  * @return A tuple containing the precision and recall values.
  */
-std::tuple<double, double> evaluate(const std::vector<Segment> &gt_segments, const std::vector<Segment> &detectedSegments, double maxDistance, const std::string &version);
-
+std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, std::vector<Segment>& detectedSegments, std::unordered_map<std::string, std::string>& parameters);
 /**
  * Processes the accumulator to find: detected lines, detected lines above threshold, average votes for all lines and maximum number of votes.
  *

@@ -84,7 +84,7 @@ void houghTransformInfo(std::unordered_map<std::string, std::string>& parameters
     << " - Version                 : " << parameters["HT_version"] << std::endl
     << " - Probabilistic           : " << ((parameters["version"] == "PHT" || parameters["version"] == "PPHT") ? "Yes" : "No") << std::endl
     << " - Parallel                : " << (parameters["parallel_ht"] == "true" ? "Enabled" : "Disabled") << std::endl
-    << " - Parallelization Library : " << parameters["parallel_ht_type"] << std::endl
+    << " - Parallelization Library : " << parameters["HT_parallelism"] << std::endl
     << " - Threads                 : " << parameters["omp_threads"] << std::endl
     << " - Vote threshold          : " << parameters["hough_vote_threshold"] << std::endl
     << " - Theta                   : " << parameters["hough_theta"] << std::endl
@@ -101,6 +101,22 @@ void houghTransformInfo(std::unordered_map<std::string, std::string>& parameters
 /***************************
  * Input/Output management *
 ****************************/
+void printParameters(const std::unordered_map<std::string, std::string>& parameters) {
+    // Find the maximum key length
+    std::cout << "------ Program Parameters ------\n";
+    size_t maxKeyLength = 0;
+    for (const auto& pair : parameters) {
+        if (pair.first.length() > maxKeyLength) {
+            maxKeyLength = pair.first.length();
+        }
+    }
+    // Print the parameters with aligned keys
+    for (const auto& pair : parameters) {
+        std::cout << std::setw(maxKeyLength) << std::left << pair.first << " : " << pair.second << std::endl;
+    }
+    std::cout << "--------------------------------\n";
+
+}
 
 bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::string>& parameters) {
 
@@ -112,6 +128,9 @@ bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::
     // Parse the parameters file
     std::ifstream propertiesFile(argv[1]);
     std::string line;
+    size_t lastDotIndex;
+    size_t lastSlashIndex;
+
     if (!propertiesFile.is_open()) {
         std::cerr << "Could not open the parameters file." << std::endl;
         return false;
@@ -127,7 +146,6 @@ bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::
                 // Remove single quotes from the value and store in the parameters map
                 value.erase(std::remove(value.begin(), value.end(), '\''), value.end());
                 parameters[key] = value;
-                std::cout << std::left << std::setw(30) << key << ": " << value << std::endl;
             }
         }
     }
@@ -137,34 +155,41 @@ bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::
         std::cerr << "File does not exist.\nInput path:" << inputPath << std::endl;
         return false;
     }
-    // Check if file is a .pnm file
-    if (parameters["run_for"] == "single_image_test"){
-        
-        if (inputPath.size() < 4 || inputPath.substr(inputPath.size() - 4) != ".pnm") {
-            std::cout << "[!] Input image is not a .pnm file." << std::endl;
-            convertImages(inputPath, "pnm", parameters);
 
-            // Ensure the imagePath ends with ".pnm" after conversion
-            size_t lastDotIndex = inputPath.find_last_of(".");
-            if (lastDotIndex != std::string::npos) {
-                inputPath = inputPath.substr(0, lastDotIndex) + ".pnm";
-            } else {
-                inputPath += ".pnm"; // Append .pnm if no extension is present
-            }
+    // Check if file is a .pnm file, if not update the parameters
+    if (inputPath.size() < 4 || inputPath.substr(inputPath.size() - 4) != ".pnm") {
+        std::cout << "[!] Input image is not a .pnm file." << std::endl;
+        convertImages(inputPath, "pnm", parameters);
 
-            parameters["input"] = inputPath;
+        // Ensure the imagePath ends with ".pnm" after conversion
+        lastDotIndex = inputPath.find_last_of(".");
+        if (lastDotIndex != std::string::npos) {
+            inputPath = inputPath.substr(0, lastDotIndex) + ".pnm";
+        } else {
+            inputPath += ".pnm"; // Append .pnm if no extension is present
         }
 
-        size_t lastSlashIndex = inputPath.find_last_of("/\\"); // Handle both Unix and Windows paths
-        size_t lastDotIndex = inputPath.find_last_of(".");
-        std::string image_name = inputPath.substr(lastSlashIndex + 1, lastDotIndex - lastSlashIndex - 1);
-
-        parameters["image_name"] = image_name;
+        parameters["input"] = inputPath;
     }
 
+    // Extract the folder path and image name
+    lastSlashIndex = inputPath.find_last_of("/\\"); // Handle both Unix and Windows paths
+    lastDotIndex = inputPath.find_last_of(".");
+
+    if (lastSlashIndex != std::string::npos) {
+        parameters["input_folder"] = inputPath.substr(0, lastSlashIndex + 1);
+    } else {
+        parameters["input_folder"] = "./"; // Fallback to current directory if no slash is found
+    }
+
+    std::string image_name = inputPath.substr(lastSlashIndex + 1, lastDotIndex - lastSlashIndex - 1);
+
+    parameters["image_name"] = image_name;
     parameters["image_format"] = ".pnm";
+
     return true;
 }
+
 
 Image readImage(const std::string& imagePath) {
     std::ifstream file(imagePath, std::ios::binary);
@@ -221,10 +246,11 @@ Image readImage(const std::string& imagePath) {
     return img;
 }
 
-void loadGroundTruthData(const std::string &gtPath, std::unordered_map<std::string, std::vector<Segment>>& gtData, std::unordered_map<std::string, int>& gtLinesPerImage){
+std::unordered_map<std::string, std::vector<Segment>> loadGroundTruthData(const std::string &gtPath){
 
     std::ifstream file(gtPath);
     std::string line;
+    std::unordered_map<std::string, std::vector<Segment>> gtData;
 
     std::getline(file, line); // Header
 
@@ -250,7 +276,6 @@ void loadGroundTruthData(const std::string &gtPath, std::unordered_map<std::stri
         int intersectionStartY = std::stoi(parts[10]);
         int intersectionEndX = std::stoi(parts[11]);
         int intersectionEndY = std::stoi(parts[12]);
-        int linesCount = std::stoi(parts[8]);
         double intersectionRho = std::stod(parts[13]);
         double rho = std::stod(parts[5]);
         double thetaRad = std::stod(parts[6]);
@@ -262,8 +287,9 @@ void loadGroundTruthData(const std::string &gtPath, std::unordered_map<std::stri
 
         // Add the gt line segment to the corresponding image in the map
         gtData[imageName].push_back(gt_seg);
-        gtLinesPerImage[imageName] = linesCount;
     }
+
+    return gtData;
 }
 
 // Function to save performance data to a CSV file
@@ -277,15 +303,7 @@ void savePerformance(const std::unordered_map<std::string, std::string>& paramet
     std::string path = parameters.at("performance_path");
 
     // Determine the filename based on the "run_for" key in the parameters
-    std::string filename;
-    if (parameters.at("run_for") == "single_image_test") {
-        filename = path + "/single_image_performances.csv";
-    } else if (parameters.at("run_for") == "dataset_evaluation") {
-        filename = path + "/dataset_eval_performances.csv";
-    } else {
-        std::cerr << "Unknown run_for value: " << parameters.at("run_for") << std::endl;
-        return;
-    }
+    std::string filename = path + "/single_image_performances.csv";
 
     // Check if the file exists
     bool file_exists_flag = fileExists(filename);

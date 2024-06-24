@@ -35,6 +35,14 @@ double euclideanDistance(const Point& p1, const Point& p2);
  * Presentation functions *
  ***************************/
 /**
+ * Print the program external fixed parameters and also the internal generated.
+ * 
+ * @param parameters Parameters of the program.
+ */
+void printParameters(const std::unordered_map<std::string, std::string>& parameters);
+
+
+/**
  * Prints information about the given image.
  *
  * @param img The Image object to print information for.
@@ -91,11 +99,9 @@ Image readImage(const std::string& imagePath);
  * gtLinesPerImage is another map used to store pairs image/#lines.
  * 
  * @param gtPath File system path where the ground_truth.csv file is located.
- * @param gtData Map that will contain a row for each line in each image of the dataset
- * @param gtLinesPerImage Map that will contain the number of lines that each image contains.
- * 
+ * @return List of segments data specified in the file at the given path.
  */
-void loadGroundTruthData(const std::string &gtPath, std::unordered_map<std::string, std::vector<Segment>>& gtData, std::unordered_map<std::string, int>& gtLinesPerImage);
+std::unordered_map<std::string, std::vector<Segment>> loadGroundTruthData(const std::string &gtPath);
 
 /**
  * Save all the performance metrics into a structured .csv file for later inspection.

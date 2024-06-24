@@ -32,9 +32,9 @@ void preprocessImage(Image &img, std::unordered_map<std::string, std::string>& p
  *
  * @param img The image on which to perform the Hough Transform.
  * @param parameters A map containing parameters for the Hough Transform.
- * @param verbose Boolean parameter, if true show console messages, otherwise not.
+ * @param gtLines A vector of ground truth lines for the input image, if available. 
  */
-std::vector<Segment> HoughTransformation(Image &img, std::unordered_map<std::string, std::string>& parameters, bool verbose);
+std::vector<Segment> HoughTransformation(Image &img, std::unordered_map<std::string, std::string>& parameters, std::vector<Segment> gtSegments);
 
 /**
  * Process each image of the dataset with the same specified methodology.
