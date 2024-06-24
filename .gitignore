@@ -53,6 +53,6 @@ Mkfile.old
 dkms.conf
 .vscode
 
-dataset/images
+dataset/synthetic_images/*
 openMP/output/*
 openMP/cv2

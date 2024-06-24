@@ -53,11 +53,11 @@ std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, std
     parameters["precision"] = std::to_string(precision);
 
     std::cout 
-        << " |- Total detection: " << total_detected << std::endl
-        << " |- Total GT       : " << total_ground_truth << std::endl
-        << " |- True Positive  : " << true_positives << std::endl
-        << " |- False Positive : " << false_positives << std::endl
-        << " |- False Negative : " << false_negatives << std::endl;
+        << "  |- Total detection: " << total_detected << std::endl
+        << "  |- Total GT       : " << total_ground_truth << std::endl
+        << "  |- True Positive  : " << true_positives << std::endl
+        << "  |- False Positive : " << false_positives << std::endl
+        << "  |- False Negative : " << false_negatives << std::endl;
 
     return {precision, recall};
 }

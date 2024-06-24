@@ -296,7 +296,8 @@ std::unordered_map<std::string, std::vector<Segment>> loadGroundTruthData(const 
 void savePerformance(const std::unordered_map<std::string, std::string>& parameters) {
     // Keys to exclude from saving
     std::vector<std::string> keys_to_exclude = {
-        "input", "output_folder", "performance_path", "converter_program_location", "conversion_format", "verbose", "image_format"
+        "input", "output_folder", "performance_path", "converter_program_location", "conversion_format", "verbose", "image_format",
+        "input_folder","convert_output",
     };
 
     // Extract the path from the parameters

@@ -1,9 +1,9 @@
 HT_version='HT'
 HT_parallelism='None'
-parallel_preprocessing=false
-omp_threads=10
-input='HPC/dataset/images/img_synthetic_200m.pnm'
-output_folder='HPC/output/test/'
+parallel_preprocessing=true
+omp_threads=12
+input='HPC/dataset/synthetic_images/img_synthetic_200m.pnm'
+output_folder='HPC/output/syn_200m/'
 performance_path='HPC/performance'
 convert_output=true
 converter_program_location='HPC/python/image_converter.py'

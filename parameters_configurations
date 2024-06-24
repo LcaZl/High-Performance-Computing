@@ -75,7 +75,7 @@ cluster_rho_threshold=75.0
 sampling_rate=75
 ppht_line_gap=20
 ppht_line_len=10
-tp_distance=75
+tolerance_dimensional_percentage=75
 
 PPHT
 greyscale_conversion=true
@@ -94,4 +94,4 @@ cluster_rho_threshold=50.0
 sampling_rate=90
 ppht_line_gap=30
 ppht_line_len=20
-tp_distance=10
+tolerance_dimensional_percentage=10
