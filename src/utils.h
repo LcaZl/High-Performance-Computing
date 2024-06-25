@@ -76,7 +76,7 @@ void houghTransformInfo(std::unordered_map<std::string, std::string>& parameters
 ****************************/
 /**
  * Processes command line inputs for configuring the execution mode and paths related to image processing.
- * Validates the number of arguments, execution mode, existence, and format of the image file, 
+ * Validates the number of arguments, execution mode, existence, format of the image file 
  * and parses the parameters file to populate a parameters map.
  * 
  * @param argc Number of command line arguments.
@@ -90,16 +90,15 @@ bool processInputs(int argc, char *argv[], std::unordered_map<std::string, std::
  * Reads an image from a file in PNM format (P5 for grayscale, P6 for color).
  * 
  * @param image_path Path to the image file.
- * @return Image object containing the image data. Returns an empty Image object on failure.
+ * @return Image structure containing the image data and information. Returns an empty Image object on failure.
  */
 Image readImage(const std::string& imagePath);
 
 /**
- * Load the ground truth data inside the provided unordered map (gtData).
- * gtLinesPerImage is another map used to store pairs image/#lines.
+ * Load the ground truth data from the specified path.
  * 
  * @param gtPath File system path where the ground_truth.csv file is located.
- * @return List of segments data specified in the file at the given path.
+ * @return List of segments data structures specified in the file at the given path.
  */
 std::unordered_map<std::string, std::vector<Segment>> loadGroundTruthData(const std::string &gtPath);
 
@@ -119,7 +118,7 @@ void savePerformance(const std::unordered_map<std::string, std::string> &paramet
 void saveImage(const Image& img, const std::string& outputPath);
 
 /**
- * Converts all images in the given directory, or a single image, to the specified output format.
+ * Converts all images in the given directory, or a single image, to the specified output format using an external python script.
  * 
  * @param path Path to the image or directory containing images.
  * @param outputFormat Desired output image format.

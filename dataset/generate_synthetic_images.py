@@ -5,11 +5,17 @@ import shutil
 
 # DATASET PARAMETERS
 
-num_images = 2 # Number of images to generate
-resolution = (100,100) # Images width and height
-output_dir = "HPC/dataset/test1/" # IMages directory
-ground_truth_filename = "gt.csv"
-lines_per_image = 1 # Number of lines per images
+num_images = 1 # Number of images to generate
+output_dir = "HPC/dataset/synthetic_images/" # IMages directory
+ground_truth_filename = "img_synthetic_gt.csv"
+resolution = (20000,20000) # Images width and height
+lines_per_image = 300 # Number of lines per images
+lines_len = 1200 # pixels
+
+# 5kx5k 100lx400p
+# 10kx10k 200x800p
+# 20kx20k 300x1200p
+
 
 # This function calculates the Hough transform parameters for a line.
 def calculate_line_intersections(x1, y1, x2, y2, width, height):
@@ -83,14 +89,30 @@ def calculate_hough_parameters(x1, y1, x2, y2, width, height):
     return rho, theta_radians, theta_degrees
 
 
-def generate_synthetic_image_and_ground_truth(width, height, lines):
+def generate_synthetic_image_and_ground_truth(width, height, lines, line_length):
     base_background = np.zeros((height, width, 3), dtype=np.uint8)
     ground_truth = []
     
     for _ in range(lines):
-        x1, y1 = np.random.randint(0, width), np.random.randint(0, height)
-        x2, y2 = np.random.randint(0, width), np.random.randint(0, height)
+        valid_segment = False
+        while not valid_segment:
+            # Randomly choose a starting point
+            x1, y1 = np.random.randint(0, width), np.random.randint(0, height)
+
+            # Randomly choose an angle for the line
+            angle = np.random.uniform(0, 2 * np.pi)
+
+            # Calculate the end point based on the fixed line length and the angle
+            x2 = int(x1 + line_length * np.cos(angle))
+            y2 = int(y1 + line_length * np.sin(angle))
+
+            # Check if the end point is within the image boundaries
+            if 0 <= x2 < width and 0 <= y2 < height:
+                valid_segment = True
+                
+        # Draw the line on the image
         cv2.line(base_background, (x1, y1), (x2, y2), (255, 255, 255), 1)
+        
         rho, theta, theta_deg = calculate_hough_parameters(x1, y1, x2, y2, width, height)
         intersections = calculate_line_intersections(x1, y1, x2, y2, width, height)
         ix1, iy1 = intersections[0]
@@ -126,7 +148,6 @@ if __name__ == "__main__":
 
     gt_path = ensure_directory_and_csv_file(output_dir)
 
-    print('Path:', os.path.exists(gt_path))
     mode = 'w' if not os.path.exists(gt_path) else 'a'
     next_image_index = get_next_image_index(output_dir)
     
@@ -135,7 +156,7 @@ if __name__ == "__main__":
             gt_file.write("image_name,x1,y1,x2,y2,rho,theta_rad,theta_deg,lines,ix1,iy1,ix2,iy2,irho,itheta,itheta_deg\n")
         
         for i in range(next_image_index, next_image_index + num_images):
-            image, gt = generate_synthetic_image_and_ground_truth(resolution[0], resolution[1], lines_per_image)
+            image, gt = generate_synthetic_image_and_ground_truth(resolution[0], resolution[1], lines_per_image, lines_len)
             image_name = f"image_{i}.pnm"
             image_path = os.path.join(output_dir, image_name)
             cv2.imwrite(image_path, image)

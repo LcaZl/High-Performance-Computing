@@ -52,7 +52,5 @@ Module.symvers
 Mkfile.old
 dkms.conf
 .vscode
-
-dataset/synthetic_images/*
-openMP/output/*
-openMP/cv2
+*.pnm
+dataset/synthetic_images/*.pnm

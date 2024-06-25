@@ -13,7 +13,7 @@ module load python-3.7.2
 source cv2/bin/activate
 
 # Run python script (in virtual environment)
-python HPC/openMP/src/python/image_converter.py HPC/images/3.png jpg
+python HPC/python/image_converter.py HPC/dataset/synthetic_images jpg
 
 # Deactivate the environment
 deactivate

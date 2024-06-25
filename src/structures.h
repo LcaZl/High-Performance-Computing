@@ -29,9 +29,9 @@
 *************************/
 
 /**
- * 
  * Used to store an image and relative information. 
- * Has two methods to retrieve or set pixel's value at input coordinates of the image.
+ * Has two function for serialization and deserialization, used only for the MPI communication when
+ * image must be shared among processes.
 */
 
 struct Image {
@@ -75,6 +75,9 @@ struct Image {
     }
 };
 
+/**
+ * Point structure
+ */
 struct Point {
     int x, y;
     Point(int px, int py) : x(px), y(py) {}
@@ -82,24 +85,27 @@ struct Point {
 };
 
 /**
- * Used to store segments information. 
- * Used for segment generated with different HT versions (first constructor).
- * Also used for ground truth data (<inter>.. attributes and second constructor).
+ * Used to store segments information of different kind.
+ * 
+ * 1 - Used for detected segments/lines with different HT versions (first constructor).
+ * 2 - Used for ground truth data (<inter>.. attributes and second constructor).
 */
 struct Segment {
+    // Attributes used only by HTs.
     Point start;
     Point end;
     double rho;        // Distance from the origin to the line
     double thetaRad;   // Angle in radians
     double thetaDeg;   // Angle in degrees (-180, 180)
-    int votes;
+    int votes; // Number of votes from the accumulator
 
     // Segment augmented to reach the image border, keeping the slope.
+    // Attributes used only for ground truth data
     Point intersectionStart; // Start point projection on image border
     Point intersectionEnd; // End point projection on image border
     double interRho; // Rho of the longer segment
-    double interThetaRad;
-    double interThetaDeg;
+    double interThetaRad; // Intersection line's theta in radians
+    double interThetaDeg; // Intersection line's theta in degree
 
     Segment(Point s, Point e, double r, double tr, double td, int v) :
         start(s), end(e), rho(r), thetaRad(tr), thetaDeg(td), votes(v), intersectionStart(Point(0,0)), intersectionEnd(Point(0,0)), interRho(0), interThetaRad(0), interThetaDeg(0){}
@@ -115,7 +121,7 @@ struct Segment {
 
 /**
  * Creates a custom MPI data type for the Segment structure to facilitate MPI communication.
- * 
+ *
  * @param segmentType Pointer to the MPI_Datatype to be created.
  */
 void createSegmentMPIType(MPI_Datatype* segmentType);

@@ -9,20 +9,20 @@
 ***************/
 
 /**
- * Performs the standard sequential Hough Transform to detect lines in the given image.
+ * Performs the standard sequential Hough Transform (HT) or Probabilistic Hough Transform (PHT) to detect lines in the given image, sequential version.
  *
  * @param image Reference to the image object to analyze.
  * @param parameters A map containing parameters for the Hough Transform.
- * @return A 2D vector representing the accumulator array.
+ * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /**
- * Performs the Progressive Probabilistic Hough Transform to detect segments in the given image.
+ * Performs the Progressive Probabilistic Hough Transform (PPHT) to detect segments in the given image, sequential version.
  *
  * @param image Reference to the image object to analyze.
  * @param parameters A map containing parameters for the Hough Transform.
- * @return A 2D vector representing the accumulator array.
+ * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
@@ -30,20 +30,20 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image
  *  PARALLEL - MPI  *
 *********************/
 /**
- * Performs the parallelized version of the Hough Transform using MPI.
+ * Performs the parallelized version of the HT or PHT using MPI.
  *
  * @param image Reference to the image object to analyze.
  * @param parameters A map containing parameters for the Hough Transform.
- * @return A 2D vector representing the accumulator array.
+ * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /**
- * Performs the parallelized version of the Progressive Probabilistic Hough Transform using MPI.
+ * Performs the parallelized version of the PPHT using MPI.
  *
  * @param image Reference to the image object to analyze.
  * @param parameters A map containing parameters for the Hough Transform.
- * @return A 2D vector representing the accumulator array.
+ * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
@@ -52,23 +52,33 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_MPI(const I
 *********************/
 
 /**
- * Performs the parallelized version of the Hough Transform or the Probabilistic Hough Transform using OpenMP.
+ * Performs the parallelized version of HT or PHT using OpenMP.
  *
  * @param image Reference to the image object to analyze.
  * @param parameters A map containing parameters for the Hough Transform.
- * @return A 2D vector representing the accumulator array.
+ * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /**
- * Performs the parallelized version of the Progressive Probabilistic Hough Transform using OpenMP.
+ * Performs the parallelized version of the PPHT using OpenMP.
  *
  * @param image Reference to the image object to analyze.
  * @param parameters A map containing parameters for the Hough Transform.
- * @return A 2D vector representing the accumulator array.
+ * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
+/***********************
+ *  PARALLEL - Hybrid  *
+************************/
 
+/**
+ * Performs the parallelized version of the HT using an Hybrid approach with MPI and openMP.
+ *
+ * @param image Reference to the image object to analyze.
+ * @param parameters A map containing parameters for the Hough Transform.
+ * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
+ */
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 #endif

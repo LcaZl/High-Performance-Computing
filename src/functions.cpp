@@ -20,8 +20,9 @@ void environmentInfo(std::unordered_map<std::string, std::string>& parameters){
     std::cout << "--------------------------------\n";
 }
 
-void preprocessImage(Image& img, std::unordered_map<std::string, std::string>& parameters, bool verbose) {
+void preprocessImage(Image& img, std::unordered_map<std::string, std::string>& parameters) {
 
+    bool verbose = parameters["verbose"] == "true";
     auto startTime = MPI_Wtime();
 
     // Paths and File Names

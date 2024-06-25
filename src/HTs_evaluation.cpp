@@ -11,40 +11,58 @@ double computeDistance(const Point &startA, const Point &endA, const Point &star
 
 }
 
-std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, std::vector<Segment>& detectedSegments, std::unordered_map<std::string, std::string>& parameters) {
+
+double segmentLength(const Segment& segment) {
+    return euclideanDistance(segment.start, segment.end);
+}
+
+double computeOverlapLength(const Segment& seg1, const Segment& seg2) {
+    // Simplified overlap calculation assuming collinear segments
+    double x1 = std::max(std::min(seg1.start.x, seg1.end.x), std::min(seg2.start.x, seg2.end.x));
+    double x2 = std::min(std::max(seg1.start.x, seg1.end.x), std::max(seg2.start.x, seg2.end.x));
+    double y1 = std::max(std::min(seg1.start.y, seg1.end.y), std::min(seg2.start.y, seg2.end.y));
+    double y2 = std::min(std::max(seg1.start.y, seg1.end.y), std::max(seg2.start.y, seg2.end.y));
+    
+    if (x1 < x2 && y1 < y2) {
+        return euclideanDistance(Point(x1, y1), Point(x2, y2));
+    }
+    return 0.0;
+}
+
+std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, std::vector<Segment>& detected_segments, std::unordered_map<std::string, std::string>& parameters) {
+    
     int true_positives = 0;
     int false_positives = 0;
     int false_negatives = 0;
-    double tp_distance = std::stod(parameters["tp_distance"]);
+    double coverage_threshold = 0.8;
+    std::vector<bool> detected_flags(detected_segments.size(), false); // Flags for detected segments
 
-    // Create a copy of the ground truth segments that we can modify
-    std::vector<Segment> remaining_gt_segments = gt_segments;
+    for (const auto& gt_segment : gt_segments) {
+        double gt_length = segmentLength(gt_segment);
+        double covered_length = 0.0;
 
-    for (const auto& detected : detectedSegments) {
-        bool matched = false;
-        for (auto it = remaining_gt_segments.begin(); it != remaining_gt_segments.end(); ++it) {
-            double distance;
-            if (parameters["HT_version"] == "PPHT")
-                distance = computeDistance(it->start, it->end, detected.start, detected.end);
-            else if (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT")
-                distance = computeDistance(it->intersectionStart, it->intersectionEnd, detected.start, detected.end);
-
-            if (distance < tp_distance) {
+        for (size_t i = 0; i < detected_segments.size(); ++i) {
+            if (detected_flags[i]) continue; // Skip already matched segments
+            covered_length += computeOverlapLength(gt_segment, detected_segments[i]);
+            if (covered_length / gt_length >= coverage_threshold) {
                 true_positives++;
-                remaining_gt_segments.erase(it); // Remove the matched ground truth segment
-                matched = true;
-                break; // Match each detected segment to only one ground truth segment
+                detected_flags[i] = true; // Mark segment as matched
+                break;
             }
         }
-        if (!matched) {
+
+        if (covered_length / gt_length < coverage_threshold) {
+            false_negatives++;
+        }
+    }
+
+    for (size_t i = 0; i < detected_segments.size(); ++i) {
+        if (!detected_flags[i]) {
             false_positives++;
         }
     }
 
-    // Remaining unmatched ground truth segments are false negatives
-    false_negatives = remaining_gt_segments.size();
-
-    int total_detected = detectedSegments.size();
+    int total_detected = detected_segments.size();
     int total_ground_truth = gt_segments.size();
     double precision = total_detected > 0 ? static_cast<double>(true_positives) / total_detected : 0;
     double recall = total_ground_truth > 0 ? static_cast<double>(true_positives) / total_ground_truth : 0;
@@ -61,6 +79,7 @@ std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, std
 
     return {precision, recall};
 }
+
 
 std::tuple<int, int, int, double> analyzeAccumulator(const std::vector<std::vector<int>>& accumulator, int voteThreshold) {
     int linesCount = 0;

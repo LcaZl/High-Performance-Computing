@@ -142,7 +142,7 @@ _______________________________________________________________
 It contains different parameters that allow to control different aspects of the program.
 A single executable can be runned more times with totally different parameters.
 
-"parameters_configurations": contains a version of the parameters file for each image in "dataset/images/" and for each synthetic dataset. The parameters regard only a subset of them, the ones that influece the preprocessing operations, HT configuration and clustering.
+"parameters_configurations": contains a version of the parameters file for each image in "dataset/images/" and for each synthetic dataset. The parameters specified regard only a subset of them, the ones that influece the preprocessing operations, HT configuration and clustering.
 
 Example:
 
@@ -164,7 +164,7 @@ cluster_rho_threshold=10.0
 sampling_rate=55
 ppht_line_gap=5
 ppht_line_len=30
-detection_distance_threshold=5
+tolerance_dimensional_percentage=5
 
 
 _______________________________________________________________
@@ -174,12 +174,6 @@ _______________________________________________________________
 
  - General Execution Parameters
 
-    run_for
-        Description: Defines the type of execution.
-            dataset_evaluation: Expects a folder of images (with a ground_truth.csv file for evaluation) in the "input" parameter.
-            single_image_test: Expects a single image file in "input" parameter.
-        Values: dataset_evaluation, single_image_test
-
     HT_version
         Description: Specifies the version of the Hough Transform to use.
             HT: Standard Hough Transform.
@@ -187,16 +181,16 @@ _______________________________________________________________
             PPHT: Progressive Probabilistic Hough Transform.
         Values: HT, PHT, PPHT
 
+    HT_parallelism
+        Description: Indicates whether the execution will be parallelized (where necessary) and with which method. Can also specify a sequential execution ('None')
+        Values: None, MPI, openMP, Hybrid
+
     parallel_preprocessing
-        Description: Indicates whether the execution will be parallelized (where necessary) or strictly serial.
+        Description: Specifies if the preprocessing steps (Gaussian blurring and Sobel edge detection) must be performed using openMP to speed up the process.
         Values: true, false
 
-    parallel_ht_type
-        Description: Specifies the type of parallelization to use.
-        Values: openMP, MPI
-
-    thread_count
-        Description: Number of threads to use. If the specified number exceeds the available threads, all available threads will be used.
+    omp_thread
+        Description: Number of threads to use. For HT_parallelim='OMP' and for parallel_preprocessing='true'
         Values: <int>
 
     verbose
@@ -309,12 +303,12 @@ _______________________________________________________________
 
  - Evaluation Parameters
 
-    detection_distance_threshold
+    tolerance_dimensional_percentage
+        It a percentage of the image dimension, that will be used to compute the final distane threshold used for evaluate the HT lines detected against the ground truth lines.
         Description: It defines the tolerance for considering lines as detected, affecting the precision of the transformation.
         When the average euclidean distance between the points of two lines is computed (a line detected with HT and a ground truth line):
             - if the value is below the threshold, the detected line correspond to the ground truth, this is true positive.
             - if the value is higher the threshold, the detected line doesn't correspond to the ground truth line.
-        This parameter is used only with "run_for" equal to "dataset_evaluation", since ground truth data are not available for single images ("dataset/images/").
         Values: <float>
 
 

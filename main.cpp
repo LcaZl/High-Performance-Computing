@@ -42,11 +42,9 @@ int main(int argc, char* argv[]) {
             std::cout << "Loaded " << gtLines.size() << " ground truth lines for image " << parameters["image_name"] << std::endl;
             if (gtLines.size() == 0)
                 std::cout << "Precision and recall metrics not available." << std::endl;
-
-            parameters["tp_distance"] = std::to_string((std::stod(parameters["tolerance_dimensional_percentage"]) / 100.0) * std::max(img.height, img.width));
             
             printParameters(parameters);
-            preprocessImage(img, parameters, parameters["verbose"] == "true"); // Image prepared accordingly to parameters
+            preprocessImage(img, parameters); // Image prepared accordingly to parameters
         }
 
         stringLength = serializedParameters.size();
@@ -75,7 +73,7 @@ int main(int argc, char* argv[]) {
             auto totDuration = totEnd - totStart;
             parameters["total_duration"] = std::to_string(totDuration);
             savePerformance(parameters);
-            std::cout << "\nProgram completed succesfully in " << totDuration << " seconds" << std::endl;
+            std::cout << "\nProgram completed succesfully in " << totDuration << " seconds\n\n\n" << std::endl;
         }
 
     } catch(const std::exception& e){

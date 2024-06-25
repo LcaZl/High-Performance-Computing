@@ -195,8 +195,7 @@ Image readImage(const std::string& imagePath) {
     std::ifstream file(imagePath, std::ios::binary);
     Image img;
     if (!file.is_open()) {
-        std::cerr << "Unable to open file: " << imagePath << std::endl;
-        return img; // Returns an empty Image object
+        throw std::runtime_error("Unable to open file: " + imagePath);
     }
 
     std::string line;
@@ -204,8 +203,7 @@ Image readImage(const std::string& imagePath) {
 
     // Checks if the format is supported
     if (line != "P5" && line != "P6") {
-        std::cerr << "Unsupported image format or not a PNM file: " << line << std::endl;
-        return img;
+        throw std::runtime_error("Unsupported image format or not a PNM file: " + line);
     }
 
     img.isColor = (line == "P6");
@@ -221,16 +219,14 @@ Image readImage(const std::string& imagePath) {
     iss >> img.width >> img.height;
 
     // Read the maximum pixel value (usually 255)
-    int maxPixelValue = 0;
     std::getline(file, line);
     while (line[0] == '#') {
         std::getline(file, line); // skip comments
     }
-    maxPixelValue = std::stoi(line);
+    int maxPixelValue = std::stoi(line);
 
     if (maxPixelValue != 255) {
-        std::cerr << "Unsupported max pixel value: " << maxPixelValue << std::endl;
-        return img;
+        throw std::runtime_error("Unsupported max pixel value: " + std::to_string(maxPixelValue));
     }
 
     int dataSize = img.width * img.height * (img.isColor ? 3 : 1);
@@ -239,8 +235,7 @@ Image readImage(const std::string& imagePath) {
     file.read(reinterpret_cast<char*>(img.data.data()), dataSize);
 
     if (!file) {
-        std::cerr << "Error reading the image data." << std::endl;
-        return img;
+        throw std::runtime_error("Error reading the image data.");
     }
 
     return img;

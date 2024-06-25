@@ -32,7 +32,7 @@ void equalizeHistogram(Image& img) {
 
     // Ensure the image is in grayscale.
     if (img.isColor) {
-        std::cerr << "Image is not in grayscale. Please convert it first." << std::endl;
+        std::cerr << "Image is not in grayscale. Please enable conversion in parameters file." << std::endl;
         return;
     }
 
@@ -64,8 +64,7 @@ void equalizeHistogram(Image& img) {
 }
 
 void toBinary(Image& img) {
-    if (img.data.empty()) return; // Do nothing if the image data is empty.
-
+    
     for (unsigned char& pixel : img.data) {
         if (pixel != 0) {
             pixel = 255;
