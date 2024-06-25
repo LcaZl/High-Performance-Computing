@@ -4,6 +4,7 @@
  *   SERIAL   *
 ***************/
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+    
     bool probabilistic = (parameters["HT_version"] == "PHT");
     int thetaResolution = std::stoi(parameters["hough_theta"]);
     int samplingRate = std::stoi(parameters["sampling_rate"]);
@@ -78,7 +79,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT(const Ima
 }
 
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
-    
+
     int thetaResolution = std::stoi(parameters["hough_theta"]);
     int samplingRate = std::stoi(parameters["sampling_rate"]);
     int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
@@ -150,7 +151,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image
                             for (int xi = std::max(0, x - lineGap); xi < std::min(image.width, x + lineGap); xi++) {
                                 if (image.data[yi * image.width + xi] > 0) {
                                     double calculatedRho = static_cast<double>((xi - centerX) * cosThetaValue + (yi - centerY) * sinThetaValue);
-                                    if (std::abs(calculatedRho - rho) < 2) {
+                                    if (std::abs(calculatedRho - rho) < 5) {
                                         if (!linePoints.empty() && (std::abs(linePoints.back().x - xi) > lineGap || std::abs(linePoints.back().y - yi) > lineGap)) {
                                             if (static_cast<int>(linePoints.size()) >= lineLength) {
                                                 segments.push_back(Segment{linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]});
@@ -473,19 +474,20 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_MPI(const I
 *********************/
 
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
-    int thetaResolution = std::stoi(parameters["hough_theta"]);
     bool probabilistic = (parameters["version"] == "PHT");
+    int thetaResolution = std::stoi(parameters["hough_theta"]);
     int samplingRate = std::stoi(parameters["sampling_rate"]);
+    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
     int numThreads = std::stoi(parameters["omp_threads"]);
+
     double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
     int rhoSize = static_cast<int>(2 * rhoMax) + 1;
-    
-    std::vector<std::vector<int>> accumulator(rhoSize, std::vector<int>(thetaResolution, 0));
-    std::vector<std::vector<std::vector<int>>> local_accumulators(numThreads, std::vector<std::vector<int>>(rhoSize, std::vector<int>(thetaResolution, 0)));
 
+    std::vector<std::vector<int>> accumulator(rhoSize, std::vector<int>(thetaResolution, 0));
+    std::vector<Segment> segments;
+    std::random_device rd;
     double centerX = image.width / 2.0;
     double centerY = image.height / 2.0;
-    std::random_device rd;
 
     // Precompute cosine and sine values
     std::vector<double> cosTheta(thetaResolution), sinTheta(thetaResolution);
@@ -495,43 +497,45 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const
         sinTheta[thetaIndex] = sin(thetaRad);
     }
 
-    #pragma omp parallel num_threads(numThreads) default(none) shared(image, thetaResolution, probabilistic, samplingRate, rhoMax, rhoSize, centerX, centerY, local_accumulators, rd, cosTheta, sinTheta, numThreads, accumulator)
-    {
-        int thread_id = omp_get_thread_num();
-        std::mt19937 gen(rd() + thread_id);
-        std::uniform_int_distribution<> dis(0, 100 / samplingRate - 1);
+    std::vector<int> points;
+    int totalPoints = 0;
 
-        #pragma omp for collapse(2) schedule(static)
+    #pragma omp parallel num_threads(numThreads)
+    {
+        std::mt19937 gen(rd() + omp_get_thread_num());
+        std::uniform_int_distribution<> dis(0, 100);
+
+        #pragma omp for collapse(2) reduction(+:totalPoints)
         for (int y = 0; y < image.height; ++y) {
             for (int x = 0; x < image.width; ++x) {
-                if ((!probabilistic && image.data[y * image.width + x] > 0) ||
-                    (probabilistic && image.data[y * image.width + x] > 0 && dis(gen) == 0)) {
-                    for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
-                        double rho = (x - centerX) * cosTheta[thetaIndex] + (y - centerY) * sinTheta[thetaIndex];
-                        int rhoIndex = static_cast<int>(rho + rhoMax);
-                        if (rhoIndex >= 0 && rhoIndex < rhoSize) {
-                            local_accumulators[thread_id][rhoIndex][thetaIndex]++;
-                        }
+                if (image.data[y * image.width + x] > 0) {
+                    ++totalPoints;
+                    if (!probabilistic || dis(gen) <= samplingRate) {
+                        #pragma omp critical
+                        points.push_back(y * image.width + x);
                     }
-                }
-            }
-        }
-
-        #pragma omp for collapse(2) schedule(static)
-        for (int i = 0; i < rhoSize; ++i) {
-            for (int j = 0; j < thetaResolution; ++j) {
-                for (int t = 0; t < numThreads; ++t) {
-                    #pragma omp atomic
-                    accumulator[i][j] += local_accumulators[t][i][j];
                 }
             }
         }
     }
 
-    std::vector<Segment> segments;
-    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
-    
-    #pragma omp parallel for collapse(2) num_threads(numThreads) default(none) shared(accumulator, rhoSize, thetaResolution, voteThreshold, image, centerX, centerY, cosTheta, sinTheta, segments, rhoMax)
+    // Accumulate votes
+    #pragma omp parallel for num_threads(numThreads)
+    for (int i = 0; i < points.size(); ++i) {
+        int x = points[i] % image.width;
+        int y = points[i] / image.width;
+        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
+            double rho = (x - centerX) * cosTheta[thetaIndex] + (y - centerY) * sinTheta[thetaIndex];
+            int rhoIndex = static_cast<int>(rho + rhoMax);
+            if (rhoIndex >= 0 && rhoIndex < rhoSize) {
+                #pragma omp atomic
+                accumulator[rhoIndex][thetaIndex]++;
+            }
+        }
+    }
+
+    // Identify segments
+    #pragma omp parallel for collapse(2) num_threads(numThreads)
     for (int rhoIndex = 0; rhoIndex < rhoSize; ++rhoIndex) {
         for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
             if (accumulator[rhoIndex][thetaIndex] > voteThreshold) {
@@ -540,7 +544,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const
                 double rho = rhoIndex - rhoMax;
                 Point start, end;
                 std::tie(start, end) = calculateEndpoints(rho, thetaRad, image.width, image.height);
-                
+
                 #pragma omp critical
                 segments.push_back(Segment(start, end, rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]));
             }
@@ -550,25 +554,31 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const
     return {accumulator, segments};
 }
 
-
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+   
     int thetaResolution = std::stoi(parameters["hough_theta"]);
-    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
-    int rhoSize = static_cast<int>(2 * rhoMax) + 1;
-    int numThreads = std::stoi(parameters["omp_threads"]);
-    std::vector<std::vector<int>> accumulator(rhoSize, std::vector<int>(thetaResolution, 0));
-    std::vector<std::vector<std::vector<int>>> local_accumulators(numThreads, std::vector<std::vector<int>>(rhoSize, std::vector<int>(thetaResolution, 0)));
-
-    double centerX = image.width / 2.0;
-    double centerY = image.height / 2.0;
+    double samplingRate = std::stod(parameters["sampling_rate"]);
     int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
     int lineGap = std::stoi(parameters["ppht_line_gap"]);
     int lineLength = std::stoi(parameters["ppht_line_len"]);
-    double samplingRate = std::stod(parameters["sampling_rate"]);
+    int numThreads = std::stoi(parameters["omp_threads"]);
+
+    double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
+    int rhoSize = static_cast<int>(2 * rhoMax) + 1;
+
+    std::vector<std::vector<int>> accumulator(rhoSize, std::vector<int>(thetaResolution, 0));
+    std::vector<std::vector<std::vector<int>>> local_accumulators(numThreads, std::vector<std::vector<int>>(rhoSize, std::vector<int>(thetaResolution, 0)));
+    std::vector<Segment> segments;
+    std::vector<int> points;
+    std::vector<bool> processed(points.size(), false); // To mark points as processed
+    std::vector<double> cosTheta(thetaResolution), sinTheta(thetaResolution);
 
     std::random_device rd;
 
-    std::vector<int> points;
+    double centerX = image.width / 2.0;
+    double centerY = image.height / 2.0;
+
+
     points.reserve(image.width * image.height);
     for (int y = 0; y < image.height; ++y) {
         for (int x = 0; x < image.width; ++x) {
@@ -577,10 +587,8 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
             }
         }
     }
-    std::vector<bool> processed(points.size(), false); // To mark points as processed
 
     // Precompute cosine and sine values
-    std::vector<double> cosTheta(thetaResolution), sinTheta(thetaResolution);
     for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
         double thetaRad = thetaIndex * (M_PI / thetaResolution);
         cosTheta[thetaIndex] = cos(thetaRad);
@@ -642,7 +650,6 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
         }
     }
 
-    std::vector<Segment> segments;
 
     // Segment extraction
     #pragma omp parallel for collapse(2) num_threads(numThreads) default(none) shared(accumulator, rhoSize, thetaResolution, voteThreshold, image, centerX, centerY, cosTheta, sinTheta, segments, lineGap, lineLength, rhoMax)

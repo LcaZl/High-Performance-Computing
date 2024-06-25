@@ -133,7 +133,7 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
         if (parameters["HT_version"] == "PPHT"){
             std::tie(accumulator, segments) = PPHT_OMP(img, parameters);
         }
-        else if (parameters["HT_version"] == "PHT" || parameters["HT_version"] == "PHT"){ 
+        else if (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT"){ 
             std::tie(accumulator, segments) = HT_PHT_OMP(img, parameters);
         }
     }
@@ -178,9 +178,9 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
         auto endTime = MPI_Wtime();
 
         // Cluster lines if requested
-        if ( parameters["cluster_similar_lines"] == "true" && world_rank == 0) {
+        if ( parameters["cluster_similar_lines"] == "true" && world_rank == 0) 
             segments = mergeSimilarLines(segments, img, parameters);
-        }
+        
         parameters["htDuration"] = std::to_string(endTime - startTime);
 
         // Analyze accumulator

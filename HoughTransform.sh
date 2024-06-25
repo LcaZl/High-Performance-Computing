@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -l select=1:ncpus=1:mem=4gb
+#PBS -l select=1:ncpus=4:mem=8gb
 #PBS -l walltime=0:50:00
 #PBS -N ht
 #PBS -q short_cpuQ
@@ -19,6 +19,7 @@ export PBS_SELECT=$(cat $PBS_NODEFILE | sort | uniq | wc -l)
 export PBS_NCPUS=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.ncpus = )\d+')
 export PBS_MEM=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.mem = )\d+' | sed 's/gb//')
 export OMP_PLACES=threads
+export OMP_NUM_THREADS=$PBS_NCPUS  # Set the number of OpenMP threads
 
 export NP_VALUE=1
 
@@ -32,6 +33,7 @@ unset PBS_NCPUS
 unset PBS_MEM
 unset TOTAL_PROCS
 unset NP_VALUE
+unset OMP_NUM_THREADS
 deactivate
 
 # MPIEXEC
