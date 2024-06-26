@@ -9,7 +9,7 @@ void environmentInfo(std::unordered_map<std::string, std::string>& parameters){
     parameters["pbs_ncpus"] = std::getenv("PBS_NCPUS");
     parameters["pbs_mem"] = std::getenv("PBS_MEM");
     parameters["number_processes"] = std::getenv("NP_VALUE");
-
+    
     std::cout << "--- Environment information ----" << std::endl;
     std::cout << "PBS Select       : " << parameters["pbs_select"] << std::endl;
     std::cout << "PBS Tot CPUs     : " << parameters["pbs_ncpus"] << std::endl;

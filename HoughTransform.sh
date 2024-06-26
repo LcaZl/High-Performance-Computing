@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -l select=1:ncpus=4:mem=8gb
+#PBS -l select=1:ncpus=2:mem=4gb
 #PBS -l walltime=0:50:00
 #PBS -N ht
 #PBS -q short_cpuQ
@@ -15,25 +15,23 @@ module load mpich-3.2.1--gcc-9.1.0
 source cv2/bin/activate
 
 # Dynamically set the environment variables from PBS directives
-export PBS_SELECT=$(cat $PBS_NODEFILE | sort | uniq | wc -l)
-export PBS_NCPUS=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.ncpus = )\d+')
-export PBS_MEM=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.mem = )\d+' | sed 's/gb//')
+export PBS_SELECT=$(cat $PBS_NODEFILE | sort | uniq | wc -l) # Number of nodes
+export PBS_NCPUS=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.ncpus = )\d+') # (select * cpus) -> total number of cpus.
+export PBS_MEM=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.mem = )\d+' | sed 's/gb//') 
+PARAM_FILE="HPC/parameters"
+export NP_VALUE=$(grep "pbs_np=" $PARAM_FILE | cut -d '=' -f 2)
 export OMP_PLACES=threads
-export OMP_NUM_THREADS=$PBS_NCPUS  # Set the number of OpenMP threads
 
-export NP_VALUE=1
-
-mpiexec -np $NP_VALUE ./HPC/HoughTransform HPC/parameters
-mpiexec -np $NP_VALUE ./HPC/HoughTransform HPC/parameters
-mpiexec -np $NP_VALUE ./HPC/HoughTransform HPC/parameters
+mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
+mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
+mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
 
 # Unset the environment variables and deactivate virtual environment
 unset PBS_SELECT
 unset PBS_NCPUS
 unset PBS_MEM
-unset TOTAL_PROCS
+unset OMP_PLACES
 unset NP_VALUE
-unset OMP_NUM_THREADS
 deactivate
 
 # MPIEXEC

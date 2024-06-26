@@ -521,7 +521,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const
 
     // Accumulate votes
     #pragma omp parallel for num_threads(numThreads)
-    for (int i = 0; i < points.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(points.size()); ++i) {
         int x = points[i] % image.width;
         int y = points[i] / image.width;
         for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
