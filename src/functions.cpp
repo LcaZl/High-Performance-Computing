@@ -8,7 +8,6 @@ void environmentInfo(std::unordered_map<std::string, std::string>& parameters){
     parameters["pbs_select"] = std::getenv("PBS_SELECT");
     parameters["pbs_ncpus"] = std::getenv("PBS_NCPUS");
     parameters["pbs_mem"] = std::getenv("PBS_MEM");
-    parameters["number_processes"] = std::getenv("NP_VALUE");
     
     std::cout << "--- Environment information ----" << std::endl;
     std::cout << "PBS Select       : " << parameters["pbs_select"] << std::endl;
@@ -16,6 +15,7 @@ void environmentInfo(std::unordered_map<std::string, std::string>& parameters){
     std::cout << "PBS Memory       : " << parameters["pbs_mem"] << std::endl;
     std::cout << "OMP Req. Threads : " << parameters["omp_threads"] << std::endl;
     std::cout << "Processes for MPI: " << world_size << std::endl;
+    std::cout << "Requested -np    : " << parameters["pbs_np"] << std::endl;
     std::cout << "Threading for OMP: " << omp_get_max_threads() << std::endl;
     std::cout << "--------------------------------\n";
 }
@@ -45,7 +45,8 @@ void preprocessImage(Image& img, std::unordered_map<std::string, std::string>& p
     auto startTime = MPI_Wtime();
         func();
         auto endTime = MPI_Wtime();
-        saveImage(img, outputFolder + parameters["image_name"] + "-" + std::to_string(stepCount) + "-" + stepDescription + outputFormat); 
+        if (parameters["output_disabled"] == "false")
+            saveImage(img, outputFolder + parameters["image_name"] + "-" + std::to_string(stepCount) + "-" + stepDescription + outputFormat); 
         auto duration = endTime - startTime;
         stepCount++;
         if (verbose)
@@ -115,19 +116,18 @@ void preprocessImage(Image& img, std::unordered_map<std::string, std::string>& p
 
 std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::string, std::string>& parameters, std::vector<Segment> gtLines) {
     
-    int world_rank, linesCount, averageVotes, maxVotes, linesAboveThreshold, serializedImageSize;
+    int world_rank, linesCount, averageVotes, maxVotes, linesAboveThreshold;
     std::string version = parameters["HT_version"];
     int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
     std::vector<std::vector<int>> accumulator;
-    std::vector<unsigned char> serializedImage;
     std::vector<Segment> segments;
     double precision, recall;
 
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
     // Hough Transform
-
     auto startTime = MPI_Wtime();
+
     if (parameters["HT_parallelism"] == "openMP" && world_rank == 0){
 
         if (parameters["HT_version"] == "PPHT"){
@@ -138,32 +138,18 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
         }
     }
     
-    else if (parameters["HT_parallelism"] == "MPI" || parameters["HT_parallelism"] == "Hybrid"){
-
-        if (world_rank == 0){
-            serializedImage = img.serialize();
-            serializedImageSize = serializedImage.size();
-        }
-
-        MPI_Barrier(MPI_COMM_WORLD);
-
-        MPI_Bcast(&serializedImageSize, 1, MPI_INT, 0, MPI_COMM_WORLD); // Broadcast the size of the serialized image
-        serializedImage.resize(serializedImageSize); // Resize the buffer on all processes to hold the serialized image data
-        MPI_Bcast(serializedImage.data(), serializedImageSize, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD); // Broadcast the serialized image data
-
-        if (world_rank != 0) 
-            img = Image::deserialize(serializedImage);
-
-        std::cout << "[PROCESS "<< world_rank << "] Started HT." << std::endl;
-
-        MPI_Barrier(MPI_COMM_WORLD);
+    else if (parameters["HT_parallelism"] == "MPI"){
 
         if (parameters["HT_version"] == "PPHT")
                 std::tie(accumulator, segments) = PPHT_MPI(img, parameters);
         else
             std::tie(accumulator, segments) = HT_PHT_MPI(img, parameters);
-            
-        //houghTransformParallel_Hybrid(img, parameters);
+    }
+    else if (parameters["HT_parallelism"] == "Hybrid"){
+        if (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT")
+                std::tie(accumulator, segments) = HT_PHT_MPI_OMP(img, parameters);
+        //else
+          //  std::tie(accumulator, segments) = HT_PHT_MPI_OMP(img, parameters);
     }
     else if (parameters["HT_parallelism"] == "None" && world_rank == 0){
 

@@ -1,9 +1,9 @@
 import os
 import itertools
 
-def save_parameters_file(output_dir, cpus, select, param_content):
+def save_parameters_file(output_dir, cpus, select, place, param_content):
     # Create the directory if it doesn't exist
-    dir_path = os.path.join(output_dir, f't_{select}_{cpus}')
+    dir_path = os.path.join(output_dir, f't_{select}_{cpus}_{place}')
     os.makedirs(dir_path, exist_ok=True)
     
     # List all parameter files in the directory
@@ -19,19 +19,18 @@ def save_parameters_file(output_dir, cpus, select, param_content):
         param_file.write(param_content)
   
 
-def generate_hough_transform_script(dir_path, cpus, select):
+def generate_hough_transform_script(dir_path, cpus, select, place):
     # Count the number of parameter files in the directory
     param_files = [f for f in os.listdir(dir_path) if f.startswith('parameters_')]
-    job_array_range = len(param_files)
     
     # Generate the HoughTransform.sh script
     script_content = f"""#!/bin/bash
-#PBS -l select={select}:ncpus={cpus}:mem=8gb
+#PBS -l select={select}:ncpus={cpus}:mem=8gb -l place={place}
 #PBS -l walltime=0:50:00
 #PBS -N ja_tests_hts
 #PBS -q short_cpuQ
-#PBS -o output/tests/ht_{cpus}_{select}.out
-#PBS -e output/tests/ht_{cpus}_{select}.err
+#PBS -o output/tests/ht_{cpus}_{select}_{place}.out
+#PBS -e output/tests/ht_{cpus}_{select}_{place}.err
 
 module load python-3.7.2
 module load gcc91
@@ -40,7 +39,7 @@ module load mpich-3.2.1--gcc-9.1.0
 
 # Use previously created virtual environment with OpenCV (see README)
 source cv2/bin/activate
-PARAM_DIR="HPC/tests/t_{cpus}_{select}"
+PARAM_DIR="HPC/tests/t_{cpus}_{select}_{place}"
 
 for PARAM_FILE in $PARAM_DIR/parameters_*; do
 
@@ -84,6 +83,10 @@ deactivate
 
 if __name__ == "__main__":
 
+
+    TESTS = 0
+    
+    
     # Define configurations
     configurations = {
         "images": [
@@ -102,10 +105,9 @@ if __name__ == "__main__":
         ],
         "HT_versions": ["HT", "PHT", "PPHT"],
         "HT_parallelisms": [ "openMP", "MPI"],
-        "mpi_selects": [1, 2, 4, 6, 8],
-        "mpi_cpus": [2, 4, 6, 8],
-        "omp_selects":[1],
-        "omp_cpus":[1,2,4,8,16,20,24,28,32]
+        "selects": [1, 2, 4, 6, 8],
+        "cpus": [2, 4, 6, 8],
+        "places":["pack","scatter","pack:excl","scatter:excl"]
     }
 
     # Template for the parameter file
@@ -113,11 +115,13 @@ if __name__ == "__main__":
 HT_parallelism='{HT_parallelism}'
 parallel_preprocessing={parallel_preprocessing}
 omp_threads={omp_threads}
+pbs_np={pbs_np}
 input='{input}'
 output_folder='{output_folder}'
-performance_path='HPC/performance/'
+performance_path='HPC/performance/tests/'
 verbose=true
-convert_output=true
+output_disabled=true
+convert_output=false
 converter_program_location='HPC/python/image_converter.py'
 conversion_format='jpg'
 greyscale_conversion=true
@@ -136,7 +140,6 @@ cluster_rho_threshold=75.0
 sampling_rate={sampling_rate}
 ppht_line_gap=25
 ppht_line_len=50
-pbs_np={pbs_np}
 """
 
 
@@ -175,8 +178,8 @@ pbs_np={pbs_np}
                     pbs_mem=mem,
                     pbs_np=np
                 )
-                save_parameters_file(output_dir, cpus, select, param_content)
-                
+                save_parameters_file(output_dir, cpus, select, "pack", param_content)
+                TESTS += 1
             else:
                 cluster_similar_lines = str(True).lower()
                 hough_vote_threshold = 120
@@ -200,12 +203,13 @@ pbs_np={pbs_np}
                 pbs_np=np
             )
             
-            save_parameters_file(output_dir, cpus, select, param_content)
-            
-            
+            save_parameters_file(output_dir, cpus, select, "pack", param_content)
+            TESTS += 1
+
+        
         for version in configurations["HT_versions"]:
     
-            # Adjust HT settings accordinglt to the version
+            # Adjust HT settings accordingly to the version
             if version == "PPHT":
                 cluster_similar_lines = str(False).lower()
                 hough_vote_threshold = 50
@@ -217,10 +221,10 @@ pbs_np={pbs_np}
                 sobel_edge_detection = str(False).lower()
                 sampling_rate=75
             
-            # MPI TESTS
             
-            for  select, cpus in itertools.product(configurations["mpi_selects"],configurations["mpi_cpus"]):
-                # Apply constraints
+            for  select, cpus, place in itertools.product(configurations["selects"],configurations["cpus"],configurations["places"]):
+
+                # MPI TESTS
                 parallel_preprocessing = str(True).lower()
                 np = select * cpus
                 omp_threads = 1
@@ -242,15 +246,13 @@ pbs_np={pbs_np}
                     pbs_np=np
                 )
                 
-                save_parameters_file(output_dir, cpus, select, param_content)
-                
-            # OMP TESTS
-            
-            for  select, cpus in itertools.product(configurations["omp_selects"],configurations["omp_cpus"]):
-                # Apply constraints
+                save_parameters_file(output_dir, cpus, select, place, param_content)
+                TESTS += 1
+
+                # OMP TESTS
                 parallel_preprocessing = str(True).lower()
                 np = 1
-                omp_threads = cpus
+                omp_threads = cpus * select
 
                 param_content = param_template.format(
                     HT_version=version,
@@ -268,8 +270,35 @@ pbs_np={pbs_np}
                     pbs_mem=mem,
                     pbs_np=np
                 )
-                
-                save_parameters_file(output_dir, cpus, select, param_content)
+                save_parameters_file(output_dir, cpus, select, place, param_content)
+                TESTS += 1
+
+                # Hybrid TESTS
+
+                if (version != "PPHT"):
+                    parallel_preprocessing = str(True).lower()
+                    np = select
+                    omp_threads = cpus
+
+                    param_content = param_template.format(
+                        HT_version=version,
+                        HT_parallelism="Hybrid",
+                        parallel_preprocessing=parallel_preprocessing,
+                        omp_threads=omp_threads,
+                        input=image["input"],
+                        output_folder=image["output_folder"],
+                        sobel_edge_detection=sobel_edge_detection,
+                        hough_vote_threshold=hough_vote_threshold,
+                        sampling_rate=sampling_rate,
+                        cluster_similar_lines=cluster_similar_lines,
+                        pbs_select=select,
+                        pbs_cpus=cpus,
+                        pbs_mem=mem,
+                        pbs_np=np
+                    )
+                    
+                    save_parameters_file(output_dir, cpus, select, place, param_content)
+                    TESTS += 1
 
     for folder_name in os.listdir(output_dir):
         folder_path = os.path.join(output_dir, folder_name)
@@ -279,6 +308,9 @@ pbs_np={pbs_np}
                 parts = folder_name.split('_')
                 select = int(parts[1])
                 cpus = int(parts[2])
-                generate_hough_transform_script(folder_path, cpus, select)
+                place = str(parts[3])
+                generate_hough_transform_script(folder_path, cpus, select, place)
             except (IndexError, ValueError):
                 print(f"Skipping invalid directory name: {folder_name}")
+                
+    print(f"Generated {TESTS} test case.")

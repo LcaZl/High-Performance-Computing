@@ -36,7 +36,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image
  * @param parameters A map containing parameters for the Hough Transform.
  * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
-std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI(Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /**
  * Performs the parallelized version of the PPHT using MPI.
@@ -45,7 +45,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI(const
  * @param parameters A map containing parameters for the Hough Transform.
  * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
-std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_MPI(const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_MPI(Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /********************
  *  PARALLEL - OMP  *
@@ -80,5 +80,5 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
  * @param parameters A map containing parameters for the Hough Transform.
  * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
-std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI_OMP(Image& image, std::unordered_map<std::string, std::string>& parameters);
 #endif

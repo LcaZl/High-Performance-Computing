@@ -7,6 +7,7 @@ int main(int argc, char* argv[]) {
     int world_size, world_rank;
 
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+    //MPI_Init(NULL, NULL);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
@@ -30,7 +31,9 @@ int main(int argc, char* argv[]) {
                 return 1;
             serializedParameters = serializeParameters(parameters);
             
-            createOrEmptyDirectory(parameters["output_folder"]); // Empty specified output directory
+            if (parameters["output_disabled"] == "false")
+                createOrEmptyDirectory(parameters["output_folder"]); // Empty specified output directory
+            
             environmentInfo(parameters); // Print PBS & openMP environment information
             img = readImage(parameters["input"]);
             imgCopy = readImage(parameters["input"]);
@@ -60,14 +63,18 @@ int main(int argc, char* argv[]) {
         
         if (world_rank == 0){ // Output and performance metrics are saved accordingly to parameters by node 0.
 
-            if (!segments.empty())
-                drawLinesOnImage(segments, imgCopy, 0);
-            saveImage(imgCopy, parameters["output_folder"] + parameters["image_name"] + "-" + parameters["HT_version"] + parameters["image_format"]);
-            
-            if (parameters["convert_output"] == "true"){
-                std::cout << "\n\nOutput images conversion to ." << parameters["conversion_format"] << " (from .pnm)" << std::endl;
-                convertImages(parameters["output_folder"], parameters["conversion_format"], parameters);
+            if (parameters["output_disabled"] == "false"){
+                if (!segments.empty())
+                    drawLinesOnImage(segments, imgCopy, 0);
+                saveImage(imgCopy, parameters["output_folder"] + parameters["image_name"] + "-" + parameters["HT_version"] + parameters["image_format"]);
+                
+                if (parameters["convert_output"] == "true"){
+                    std::cout << "\n\nOutput images conversion to ." << parameters["conversion_format"] << " (from .pnm)" << std::endl;
+                    convertImages(parameters["output_folder"], parameters["conversion_format"], parameters);
+                }
             }
+
+
 
             totEnd = MPI_Wtime();
             auto totDuration = totEnd - totStart;

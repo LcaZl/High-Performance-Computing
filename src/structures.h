@@ -39,6 +39,12 @@ struct Image {
     int width, height;
     bool isColor; // true per PPM, false per PGM
 
+    Image() : width(0), height(0), isColor(false) {}
+
+    Image(const std::vector<unsigned char>& data, int width, int height, bool isColor)
+        : data(data), width(width), height(height), isColor(isColor) {}
+
+
     // Function to serialize the Image structure
     std::vector<unsigned char> serialize() const {
         std::vector<unsigned char> serializedData;

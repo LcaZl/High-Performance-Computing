@@ -70,11 +70,11 @@ std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, std
     parameters["precision"] = std::to_string(precision);
 
     std::cout 
-        << "  |- Total detection: " << total_detected << std::endl
-        << "  |- Total GT       : " << total_ground_truth << std::endl
-        << "  |- True Positive  : " << true_positives << std::endl
-        << "  |- False Positive : " << false_positives << std::endl
-        << "  |- False Negative : " << false_negatives << std::endl;
+        << "  |- Total detection         : " << total_detected << std::endl
+        << "  |- Total GT                : " << total_ground_truth << std::endl
+        << "  |- True Positive           : " << true_positives << std::endl
+        << "  |- False Positive          : " << false_positives << std::endl
+        << "  |- False Negative          : " << false_negatives << std::endl;
 
     return {precision, recall};
 }
@@ -127,6 +127,7 @@ std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width,
         if (0 <= x1 && x1 < width) points.emplace_back(x1, y1);
         if (0 <= x2 && x2 < width) points.emplace_back(x2, y2);
     }
+
 
     // Ensure we have valid points and sort them to choose endpoints as the furthest apart
     Point start = points.front();
