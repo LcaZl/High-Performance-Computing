@@ -107,7 +107,7 @@ if __name__ == "__main__":
         "HT_parallelisms": [ "openMP", "MPI"],
         "selects": [1, 2, 4, 6, 8],
         "cpus": [2, 4, 6, 8],
-        "places":["pack","scatter","pack:excl","scatter:excl"]
+        "places":["pack","scatter","pack_excl","scatter_excl"]
     }
 
     # Template for the parameter file
