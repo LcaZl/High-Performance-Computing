@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -l select=6:ncpus=6:mem=8gb -l place=scatter:excl
-#PBS -l walltime=0:50:00
+#PBS -l walltime=3:00:00
 #PBS -N ja_tests_hts
 #PBS -q short_cpuQ
 #PBS -o output/tests/ht_6_6_scatter:excl.out

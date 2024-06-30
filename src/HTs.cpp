@@ -514,7 +514,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_MPI(Image& 
 *********************/
 
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
-    bool probabilistic = (parameters["version"] == "PHT");
+    bool probabilistic = (parameters["HT_version"] == "PHT");
     int thetaResolution = std::stoi(parameters["hough_theta"]);
     int samplingRate = std::stoi(parameters["sampling_rate"]);
     int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);

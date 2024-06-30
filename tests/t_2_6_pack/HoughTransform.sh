@@ -1,10 +1,10 @@
 #!/bin/bash
 #PBS -l select=2:ncpus=6:mem=8gb -l place=pack
-#PBS -l walltime=0:50:00
+#PBS -l walltime=3:00:00
 #PBS -N ja_tests_hts
 #PBS -q short_cpuQ
-#PBS -o output/tests/ht_6_2_pack.out
-#PBS -e output/tests/ht_6_2_pack.err
+#PBS -o output/tests/ht_2_6_pack.out
+#PBS -e output/tests/ht_2_6_pack.err
 
 module load python-3.7.2
 module load gcc91
@@ -13,7 +13,7 @@ module load mpich-3.2.1--gcc-9.1.0
 
 # Use previously created virtual environment with OpenCV (see README)
 source cv2/bin/activate
-PARAM_DIR="HPC/tests/t_6_2_pack"
+PARAM_DIR="HPC/tests/t_2_6_pack"
 
 for PARAM_FILE in $PARAM_DIR/parameters_*; do
 

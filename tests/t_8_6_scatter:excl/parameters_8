@@ -3,6 +3,7 @@ HT_parallelism='openMP'
 parallel_preprocessing=true
 omp_threads=48
 pbs_np=1
+pbs_place='scatter:excl'
 input='HPC/dataset/synthetic_images/syn_img_5k.pnm'
 output_folder='HPC/output/syn_img_5k/'
 performance_path='HPC/performance/tests/'
@@ -27,4 +28,3 @@ cluster_rho_threshold=75.0
 sampling_rate=90
 ppht_line_gap=25
 ppht_line_len=50
-

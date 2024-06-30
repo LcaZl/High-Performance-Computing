@@ -26,11 +26,11 @@ def generate_hough_transform_script(dir_path, cpus, select, place):
     # Generate the HoughTransform.sh script
     script_content = f"""#!/bin/bash
 #PBS -l select={select}:ncpus={cpus}:mem=8gb -l place={place}
-#PBS -l walltime=0:50:00
+#PBS -l walltime=3:00:00
 #PBS -N ja_tests_hts
 #PBS -q short_cpuQ
-#PBS -o output/tests/ht_{cpus}_{select}_{place}.out
-#PBS -e output/tests/ht_{cpus}_{select}_{place}.err
+#PBS -o output/tests/ht_{select}_{cpus}_{place}.out
+#PBS -e output/tests/ht_{select}_{cpus}_{place}.err
 
 module load python-3.7.2
 module load gcc91
@@ -39,7 +39,7 @@ module load mpich-3.2.1--gcc-9.1.0
 
 # Use previously created virtual environment with OpenCV (see README)
 source cv2/bin/activate
-PARAM_DIR="HPC/tests/t_{cpus}_{select}_{place}"
+PARAM_DIR="HPC/tests/t_{select}_{cpus}_{place}"
 
 for PARAM_FILE in $PARAM_DIR/parameters_*; do
 
@@ -116,6 +116,7 @@ HT_parallelism='{HT_parallelism}'
 parallel_preprocessing={parallel_preprocessing}
 omp_threads={omp_threads}
 pbs_np={pbs_np}
+pbs_place='{places}'
 input='{input}'
 output_folder='{output_folder}'
 performance_path='HPC/performance/tests/'
@@ -176,7 +177,8 @@ ppht_line_len=50
                     pbs_select=select,
                     pbs_cpus=cpus,
                     pbs_mem=mem,
-                    pbs_np=np
+                    pbs_np=np,
+                    places="pack"
                 )
                 save_parameters_file(output_dir, cpus, select, "pack", param_content)
                 TESTS += 1
@@ -200,7 +202,8 @@ ppht_line_len=50
                 pbs_select=select,
                 pbs_cpus=cpus,
                 pbs_mem=mem,
-                pbs_np=np
+                pbs_np=np,
+                places="pack"
             )
             
             save_parameters_file(output_dir, cpus, select, "pack", param_content)
@@ -243,7 +246,8 @@ ppht_line_len=50
                     pbs_select=select,
                     pbs_cpus=cpus,
                     pbs_mem=mem,
-                    pbs_np=np
+                    pbs_np=np,
+                    places=place
                 )
                 
                 save_parameters_file(output_dir, cpus, select, place, param_content)
@@ -268,7 +272,8 @@ ppht_line_len=50
                     pbs_select=select,
                     pbs_cpus=cpus,
                     pbs_mem=mem,
-                    pbs_np=np
+                    pbs_np=np,
+                    places=place
                 )
                 save_parameters_file(output_dir, cpus, select, place, param_content)
                 TESTS += 1
@@ -294,7 +299,8 @@ ppht_line_len=50
                         pbs_select=select,
                         pbs_cpus=cpus,
                         pbs_mem=mem,
-                        pbs_np=np
+                        pbs_np=np,
+                        places=place
                     )
                     
                     save_parameters_file(output_dir, cpus, select, place, param_content)
@@ -313,4 +319,4 @@ ppht_line_len=50
             except (IndexError, ValueError):
                 print(f"Skipping invalid directory name: {folder_name}")
                 
-    print(f"Generated {TESTS} test case.")
+    print(f"Generated {TESTS} test case. With three-times avg execution each result in {TESTS * 3} test to execute.")

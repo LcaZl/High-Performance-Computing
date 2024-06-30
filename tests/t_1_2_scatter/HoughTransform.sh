@@ -1,10 +1,10 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=2:mem=8gb -l place=scatter
-#PBS -l walltime=0:50:00
+#PBS -l walltime=3:00:00
 #PBS -N ja_tests_hts
 #PBS -q short_cpuQ
-#PBS -o output/tests/ht_2_1_scatter.out
-#PBS -e output/tests/ht_2_1_scatter.err
+#PBS -o output/tests/ht_1_2_scatter.out
+#PBS -e output/tests/ht_1_2_scatter.err
 
 module load python-3.7.2
 module load gcc91
@@ -13,7 +13,7 @@ module load mpich-3.2.1--gcc-9.1.0
 
 # Use previously created virtual environment with OpenCV (see README)
 source cv2/bin/activate
-PARAM_DIR="HPC/tests/t_2_1_scatter"
+PARAM_DIR="HPC/tests/t_1_2_scatter"
 
 for PARAM_FILE in $PARAM_DIR/parameters_*; do
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -l select=4:ncpus=4:mem=8gb -l place=pack
-#PBS -l walltime=0:50:00
+#PBS -l walltime=3:00:00
 #PBS -N ja_tests_hts
 #PBS -q short_cpuQ
 #PBS -o output/tests/ht_4_4_pack.out

@@ -82,7 +82,7 @@ void houghTransformInfo(std::unordered_map<std::string, std::string>& parameters
     std::cout   
     << "--- Hough Transformation Parameters ----" << std::endl
     << " - Version                 : " << parameters["HT_version"] << std::endl
-    << " - Probabilistic           : " << ((parameters["version"] == "PHT" || parameters["version"] == "PPHT") ? "Yes" : "No") << std::endl
+    << " - Probabilistic           : " << ((parameters["HT_version"] == "PHT" || parameters["HT_version"] == "PPHT") ? "Yes" : "No") << std::endl
     << " - Parallel                : " << (parameters["parallel_ht"] == "true" ? "Enabled" : "Disabled") << std::endl
     << " - Parallelization Library : " << parameters["HT_parallelism"] << std::endl
     << " - Threads                 : " << parameters["omp_threads"] << std::endl
