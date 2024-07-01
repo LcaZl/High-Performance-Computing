@@ -595,7 +595,6 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const
 }
 
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
-   
     int thetaResolution = std::stoi(parameters["hough_theta"]);
     double samplingRate = std::stod(parameters["sampling_rate"]);
     int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
@@ -606,65 +605,49 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
     double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
     int rhoSize = static_cast<int>(2 * rhoMax) + 1;
 
-    std::vector<std::vector<int>> accumulator(rhoSize, std::vector<int>(thetaResolution, 0));
-    std::vector<std::vector<std::vector<int>>> local_accumulators(numThreads, std::vector<std::vector<int>>(rhoSize, std::vector<int>(thetaResolution, 0)));
+    std::vector<std::vector<int>> globalAccumulator(rhoSize, std::vector<int>(thetaResolution, 0));
     std::vector<Segment> segments;
     std::vector<int> points;
-    std::vector<bool> processed(points.size(), false); // To mark points as processed
     std::vector<double> cosTheta(thetaResolution), sinTheta(thetaResolution);
-
-    std::random_device rd;
 
     double centerX = image.width / 2.0;
     double centerY = image.height / 2.0;
 
-
     points.reserve(image.width * image.height);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 100);
+
     for (int y = 0; y < image.height; ++y) {
         for (int x = 0; x < image.width; ++x) {
-            if (image.data[y * image.width + x] > 0) {
+            if (image.data[y * image.width + x] > 0 && dis(gen) <= samplingRate) {
                 points.push_back(y * image.width + x);
             }
         }
     }
 
-    // Precompute cosine and sine values
     for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
         double thetaRad = thetaIndex * (M_PI / thetaResolution);
         cosTheta[thetaIndex] = cos(thetaRad);
         sinTheta[thetaIndex] = sin(thetaRad);
     }
 
-    // Point processing and voting
-    #pragma omp parallel num_threads(numThreads) default(none) shared(image, thetaResolution, rhoMax, rhoSize, centerX, centerY, local_accumulators, rd, cosTheta, sinTheta, numThreads, samplingRate, processed, points)
+    std::vector<bool> processed(points.size(), false);
+
+    #pragma omp parallel num_threads(numThreads) 
     {
-        int thread_id = omp_get_thread_num();
-        std::mt19937 gen(rd() + thread_id);
-        std::uniform_real_distribution<> dis(0.0, 1.0);
+        std::mt19937 threadGen(rd());
+        std::uniform_int_distribution<> point_dis(0, points.size() - 1);
 
-        while (true) {
-            int randomIndex;
-            int randomPoint;
-            #pragma omp critical
-            {
-                if (points.empty()) {
-                    randomIndex = -1;
-                } else {
-                    randomIndex = dis(gen) * points.size();
-                    randomPoint = points[randomIndex];
-                    points[randomIndex] = points.back();
-                    points.pop_back();
-                }
-            }
+        std::vector<std::vector<int>> localAccumulator(rhoSize, std::vector<int>(thetaResolution, 0));
 
-            if (randomIndex == -1) break;
+        #pragma omp for schedule(dynamic)
+        for (int idx = 0; idx < static_cast<int>(points.size()); ++idx) {
+            int randomIndex = point_dis(threadGen);
+            int randomPoint = points[randomIndex];
 
             int x = randomPoint % image.width;
             int y = randomPoint / image.width;
-
-            if (dis(gen) > samplingRate) {
-                continue;
-            }
 
             if (!processed[randomIndex]) {
                 processed[randomIndex] = true;
@@ -672,30 +655,26 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
                     double rho = (x - centerX) * cosTheta[thetaIndex] + (y - centerY) * sinTheta[thetaIndex];
                     int rhoIndex = static_cast<int>(rho + rhoMax);
                     if (rhoIndex >= 0 && rhoIndex < rhoSize) {
-                        local_accumulators[thread_id][rhoIndex][thetaIndex]++;
+                        localAccumulator[rhoIndex][thetaIndex]++;
                     }
+                }
+            }
+        }
+
+        #pragma omp critical
+        {
+            for (int i = 0; i < rhoSize; ++i) {
+                for (int j = 0; j < thetaResolution; ++j) {
+                    globalAccumulator[i][j] += localAccumulator[i][j];
                 }
             }
         }
     }
 
-    // Combine local accumulators into the global accumulator
-    #pragma omp parallel for collapse(2) schedule(static) num_threads(numThreads)
-    for (int i = 0; i < rhoSize; ++i) {
-        for (int j = 0; j < thetaResolution; ++j) {
-            for (int t = 0; t < numThreads; ++t) {
-                #pragma omp atomic
-                accumulator[i][j] += local_accumulators[t][i][j];
-            }
-        }
-    }
-
-
-    // Segment extraction
-    #pragma omp parallel for collapse(2) num_threads(numThreads) default(none) shared(accumulator, rhoSize, thetaResolution, voteThreshold, image, centerX, centerY, cosTheta, sinTheta, segments, lineGap, lineLength, rhoMax)
+    #pragma omp parallel for collapse(2) num_threads(numThreads) 
     for (int rhoIndex = 0; rhoIndex < rhoSize; ++rhoIndex) {
         for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
-            if (accumulator[rhoIndex][thetaIndex] > voteThreshold) {
+            if (globalAccumulator[rhoIndex][thetaIndex] > voteThreshold) {
                 double thetaRad = thetaIndex * (M_PI / thetaResolution);
                 double thetaDeg = thetaRad * (180.0 / M_PI);
                 double rho = rhoIndex - rhoMax;
@@ -703,16 +682,15 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
                 double cosThetaValue = cosTheta[thetaIndex];
                 std::vector<Point> linePoints;
 
-                // Check points along the line
                 for (int yi = 0; yi < image.height; ++yi) {
                     for (int xi = 0; xi < image.width; ++xi) {
                         if (image.data[yi * image.width + xi] > 0) {
-                            double calculatedRho = static_cast<double>((xi - centerX) * cosThetaValue + (yi - centerY) * sinThetaValue);
+                            double calculatedRho = (xi - centerX) * cosThetaValue + (yi - centerY) * sinThetaValue;
                             if (std::abs(calculatedRho - rho) < 2) {
                                 if (!linePoints.empty() && (std::abs(linePoints.back().x - xi) > lineGap || std::abs(linePoints.back().y - yi) > lineGap)) {
                                     if (static_cast<int>(linePoints.size()) >= lineLength) {
                                         #pragma omp critical
-                                        segments.push_back(Segment{linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]});
+                                        segments.push_back(Segment{linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, globalAccumulator[rhoIndex][thetaIndex]});
                                     }
                                     linePoints.clear();
                                 }
@@ -724,10 +702,9 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
 
                 if (static_cast<int>(linePoints.size()) >= lineLength) {
                     #pragma omp critical
-                    segments.push_back(Segment{linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, accumulator[rhoIndex][thetaIndex]});
+                    segments.push_back(Segment{linePoints.front(), linePoints.back(), rho, thetaRad, thetaDeg, globalAccumulator[rhoIndex][thetaIndex]});
                 }
 
-                // Unvote the points
                 for (const auto& point : linePoints) {
                     int unvoteX = point.x;
                     int unvoteY = point.y;
@@ -735,16 +712,15 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
                     int unvoteRhoIndex = static_cast<int>(unvoteRho + rhoMax);
                     if (unvoteRhoIndex >= 0 && unvoteRhoIndex < rhoSize) {
                         #pragma omp atomic
-                        accumulator[unvoteRhoIndex][thetaIndex]--;
+                        globalAccumulator[unvoteRhoIndex][thetaIndex]--;
                     }
                 }
             }
         }
     }
 
-    return {accumulator, segments};
+    return {globalAccumulator, segments};
 }
-
 /***********************
  *  PARALLEL - Hybrid  *
 ************************/
