@@ -19,18 +19,18 @@ def save_parameters_file(output_dir, cpus, select, place, param_content):
         param_file.write(param_content)
   
 
-def generate_hough_transform_script(dir_path, cpus, select, place):
+def generate_hough_transform_script(dir_path, cpus, select, place, place_str):
     # Count the number of parameter files in the directory
     param_files = [f for f in os.listdir(dir_path) if f.startswith('parameters_')]
-    
+
     # Generate the HoughTransform.sh script
     script_content = f"""#!/bin/bash
 #PBS -l select={select}:ncpus={cpus}:mem=8gb -l place={place}
 #PBS -l walltime=3:00:00
 #PBS -N ja_tests_hts
 #PBS -q short_cpuQ
-#PBS -o output/tests/ht_{select}_{cpus}_{place}.out
-#PBS -e output/tests/ht_{select}_{cpus}_{place}.err
+#PBS -o output/tests/ht_{select}_{cpus}_{place_str}.out
+#PBS -e output/tests/ht_{select}_{cpus}_{place_str}.err
 
 module load python-3.7.2
 module load gcc91
@@ -39,7 +39,7 @@ module load mpich-3.2.1--gcc-9.1.0
 
 # Use previously created virtual environment with OpenCV (see README)
 source cv2/bin/activate
-PARAM_DIR="HPC/tests/t_{select}_{cpus}_{place}"
+PARAM_DIR="HPC/tests/t_{select}_{cpus}_{place_str}"
 
 for PARAM_FILE in $PARAM_DIR/parameters_*; do
 
@@ -107,7 +107,7 @@ if __name__ == "__main__":
         "HT_parallelisms": [ "openMP", "MPI"],
         "selects": [1, 2, 4, 6, 8],
         "cpus": [2, 4, 6, 8],
-        "places":["pack","scatter","pack_excl","scatter_excl"]
+        "places":["pack","scatter","pack:excl","scatter:excl"]
     }
 
     # Template for the parameter file
@@ -232,6 +232,8 @@ ppht_line_len=50
                 np = select * cpus
                 omp_threads = 1
 
+                place_str = place.replace(':','-')
+                
                 param_content = param_template.format(
                     HT_version=version,
                     HT_parallelism="MPI",
@@ -247,40 +249,40 @@ ppht_line_len=50
                     pbs_cpus=cpus,
                     pbs_mem=mem,
                     pbs_np=np,
-                    places=place
+                    places=place_str
                 )
                 
-                save_parameters_file(output_dir, cpus, select, place, param_content)
+                save_parameters_file(output_dir, cpus, select, place_str, param_content)
                 TESTS += 1
 
                 # OMP TESTS
-                parallel_preprocessing = str(True).lower()
-                np = 1
-                omp_threads = cpus * select
+                if (version != 'PPHT'):
+                    parallel_preprocessing = str(True).lower()
+                    np = 1
+                    omp_threads = cpus * select
 
-                param_content = param_template.format(
-                    HT_version=version,
-                    HT_parallelism="openMP",
-                    parallel_preprocessing=parallel_preprocessing,
-                    omp_threads=omp_threads,
-                    input=image["input"],
-                    output_folder=image["output_folder"],
-                    sobel_edge_detection=sobel_edge_detection,
-                    hough_vote_threshold=hough_vote_threshold,
-                    sampling_rate=sampling_rate,
-                    cluster_similar_lines=cluster_similar_lines,
-                    pbs_select=select,
-                    pbs_cpus=cpus,
-                    pbs_mem=mem,
-                    pbs_np=np,
-                    places=place
-                )
-                save_parameters_file(output_dir, cpus, select, place, param_content)
-                TESTS += 1
+                    param_content = param_template.format(
+                        HT_version=version,
+                        HT_parallelism="openMP",
+                        parallel_preprocessing=parallel_preprocessing,
+                        omp_threads=omp_threads,
+                        input=image["input"],
+                        output_folder=image["output_folder"],
+                        sobel_edge_detection=sobel_edge_detection,
+                        hough_vote_threshold=hough_vote_threshold,
+                        sampling_rate=sampling_rate,
+                        cluster_similar_lines=cluster_similar_lines,
+                        pbs_select=select,
+                        pbs_cpus=cpus,
+                        pbs_mem=mem,
+                        pbs_np=np,
+                        places=place_str
+                    )
+                    save_parameters_file(output_dir, cpus, select, place_str, param_content)
+                    TESTS += 1
 
-                # Hybrid TESTS
+                    # Hybrid TESTS
 
-                if (version != "PPHT"):
                     parallel_preprocessing = str(True).lower()
                     np = select
                     omp_threads = cpus
@@ -300,10 +302,10 @@ ppht_line_len=50
                         pbs_cpus=cpus,
                         pbs_mem=mem,
                         pbs_np=np,
-                        places=place
+                        places=place_str
                     )
                     
-                    save_parameters_file(output_dir, cpus, select, place, param_content)
+                    save_parameters_file(output_dir, cpus, select, place_str, param_content)
                     TESTS += 1
 
     for folder_name in os.listdir(output_dir):
@@ -314,8 +316,9 @@ ppht_line_len=50
                 parts = folder_name.split('_')
                 select = int(parts[1])
                 cpus = int(parts[2])
-                place = str(parts[3])
-                generate_hough_transform_script(folder_path, cpus, select, place)
+                place_str = str(parts[3])
+                place = place_str.replace('-',':')
+                generate_hough_transform_script(folder_path, cpus, select, place, place_str)
             except (IndexError, ValueError):
                 print(f"Skipping invalid directory name: {folder_name}")
                 

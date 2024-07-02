@@ -1,8 +1,8 @@
-HT_version='HT'
-HT_parallelism='Hybrid'
+HT_version='PHT'
+HT_parallelism='openMP'
 parallel_preprocessing=true
-omp_threads=4
-pbs_np=8
+omp_threads=32
+pbs_np=1
 pbs_place='scatter'
 input='HPC/dataset/synthetic_images/syn_img_20k.pnm'
 output_folder='HPC/output/syn_img_20k/'

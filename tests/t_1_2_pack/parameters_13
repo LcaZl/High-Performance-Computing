@@ -1,5 +1,5 @@
 HT_version='PHT'
-HT_parallelism='openMP'
+HT_parallelism='Hybrid'
 parallel_preprocessing=true
 omp_threads=2
 pbs_np=1

@@ -293,7 +293,8 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI(Image
         sinTheta[thetaIndex] = sin(thetaRad);
     }
 
-    MPI_Wait(&request2, MPI_STATUS_IGNORE);
+    if (rank != 0)
+        MPI_Wait(&request2, MPI_STATUS_IGNORE);
 
     for (int point : localEdgePoints) {
         int x = point % imageWidth;
@@ -594,7 +595,144 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const
     return {accumulator, segments};
 }
 
-std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+
+/***********************
+ *  PARALLEL - Hybrid  *
+************************/
+
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI_OMP(Image& image, std::unordered_map<std::string, std::string>& parameters) {
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    bool probabilistic = (parameters["HT_version"] == "PHT");
+    int thetaResolution = std::stoi(parameters["hough_theta"]);
+    int samplingRate = std::stoi(parameters["sampling_rate"]);
+    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
+    int numThreads = std::stoi(parameters["omp_threads"]);
+
+    int imageWidth, imageHeight;
+    std::vector<int> edgePoints;
+
+    if (rank == 0) {
+        imageWidth = image.width;
+        imageHeight = image.height;
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, 100);
+
+        for (int y = 0; y < image.height; y++) {
+            for (int x = 0; x < image.width; x++) {
+                if (image.data[y * image.width + x] > 0) {
+                    if (!probabilistic || dis(gen) <= samplingRate) {
+                        edgePoints.push_back(y * image.width + x);
+                    }
+                }
+            }
+        }
+    }
+
+    MPI_Bcast(&imageWidth, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&imageHeight, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    int numPoints = edgePoints.size();
+    MPI_Bcast(&numPoints, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    int pointsPerProcess = numPoints / size;
+    int extraPoints = numPoints % size;
+
+    std::vector<int> localEdgePoints;
+    MPI_Request request1, request2;
+
+    if (rank == 0) {
+        for (int i = 1; i < size; ++i) {
+            int startIdx = i * pointsPerProcess + std::min(i, extraPoints);
+            int endIdx = startIdx + pointsPerProcess + (i < extraPoints ? 1 : 0);
+            int count = endIdx - startIdx;
+            MPI_Isend(&count, 1, MPI_INT, i, 0, MPI_COMM_WORLD, &request1);
+            MPI_Isend(edgePoints.data() + startIdx, count, MPI_INT, i, 1, MPI_COMM_WORLD, &request2);
+        }
+        int startIdx = rank * pointsPerProcess + std::min(rank, extraPoints);
+        int endIdx = startIdx + pointsPerProcess + (rank < extraPoints ? 1 : 0);
+        localEdgePoints.insert(localEdgePoints.end(), edgePoints.begin() + startIdx, edgePoints.begin() + endIdx);
+    } else {
+        int count;
+        MPI_Irecv(&count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &request1);
+        MPI_Wait(&request1, MPI_STATUS_IGNORE);
+        localEdgePoints.resize(count);
+        MPI_Irecv(localEdgePoints.data(), count, MPI_INT, 0, 1, MPI_COMM_WORLD, &request2);
+    }
+
+    double rhoMax = std::sqrt(imageWidth * imageWidth + imageHeight * imageHeight);
+    int rhoSize = static_cast<int>(2 * rhoMax) + 1;
+    std::vector<int> localAccumulator(rhoSize * thetaResolution, 0);
+    std::vector<Segment> segments;
+
+    double centerX = imageWidth / 2.0;
+    double centerY = imageHeight / 2.0;
+
+    // Precompute cosine and sine values
+    std::vector<double> cosTheta(thetaResolution), sinTheta(thetaResolution);
+    #pragma omp parallel for num_threads(numThreads)
+    for (int thetaIndex = 0; thetaIndex < thetaResolution; thetaIndex++) {
+        double thetaRad = thetaIndex * (M_PI / thetaResolution);
+        cosTheta[thetaIndex] = cos(thetaRad);
+        sinTheta[thetaIndex] = sin(thetaRad);
+    }
+
+    if (rank != 0)
+        MPI_Wait(&request2, MPI_STATUS_IGNORE);
+
+    // Parallelize the vote accumulation
+    #pragma omp parallel for num_threads(numThreads) collapse(2)
+    for (int i = 0; i < static_cast<int>(localEdgePoints.size()); ++i) {
+        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
+            int x = localEdgePoints[i] % imageWidth;
+            int y = localEdgePoints[i] / imageWidth;
+            double rho = (x - centerX) * cosTheta[thetaIndex] + (y - centerY) * sinTheta[thetaIndex];
+            int rhoIndex = static_cast<int>(rho + rhoMax);
+            if (rhoIndex >= 0 && rhoIndex < rhoSize) {
+                #pragma omp atomic
+                localAccumulator[rhoIndex * thetaResolution + thetaIndex]++;
+            }
+        }
+    }
+
+    std::vector<int> globalAccumulatorFlatten(localAccumulator.size(), 0);
+    MPI_Reduce(localAccumulator.data(), globalAccumulatorFlatten.data(), localAccumulator.size(), MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    std::vector<std::vector<int>> globalAccumulator(rhoSize, std::vector<int>(thetaResolution, 0));
+    if (rank == 0) {
+        for (int i = 0; i < rhoSize; i++) {
+            for (int j = 0; j < thetaResolution; j++) {
+                globalAccumulator[i][j] = globalAccumulatorFlatten[i * thetaResolution + j];
+            }
+        }
+
+        // Detect segments from the global accumulator
+        #pragma omp parallel for collapse(2) num_threads(numThreads) default(none) shared(globalAccumulator, rhoSize, thetaResolution, voteThreshold, imageWidth, imageHeight, segments, centerX, centerY, cosTheta, sinTheta, rhoMax)
+        for (int rhoIndex = 0; rhoIndex < rhoSize; rhoIndex++) {
+            for (int thetaIndex = 0; thetaIndex < thetaResolution; thetaIndex++) {
+                if (globalAccumulator[rhoIndex][thetaIndex] > voteThreshold) {
+                    double thetaRad = thetaIndex * (M_PI / thetaResolution);
+                    double thetaDeg = thetaRad * (180.0 / M_PI);
+                    double rho = rhoIndex - rhoMax;
+                    Point start, end;
+                    std::tie(start, end) = calculateEndpoints(rho, thetaRad, imageWidth, imageHeight);
+                    #pragma omp critical
+                    segments.push_back(Segment(start, end, rho, thetaRad, thetaDeg, globalAccumulator[rhoIndex][thetaIndex]));
+                }
+            }
+        }
+    }
+
+    return {globalAccumulator, segments};
+}
+
+
+/**
+ * 
+ * std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters) {
     int thetaResolution = std::stoi(parameters["hough_theta"]);
     double samplingRate = std::stod(parameters["sampling_rate"]);
     int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
@@ -721,134 +859,4 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
 
     return {globalAccumulator, segments};
 }
-/***********************
- *  PARALLEL - Hybrid  *
-************************/
-
-std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI_OMP(Image& image, std::unordered_map<std::string, std::string>& parameters) {
-    int rank, size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    bool probabilistic = (parameters["HT_version"] == "PHT");
-    int thetaResolution = std::stoi(parameters["hough_theta"]);
-    int samplingRate = std::stoi(parameters["sampling_rate"]);
-    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
-    int numThreads = std::stoi(parameters["omp_threads"]);
-
-    int imageWidth, imageHeight;
-    std::vector<int> edgePoints;
-
-    if (rank == 0) {
-        imageWidth = image.width;
-        imageHeight = image.height;
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dis(0, 100);
-
-        for (int y = 0; y < image.height; y++) {
-            for (int x = 0; x < image.width; x++) {
-                if (image.data[y * image.width + x] > 0) {
-                    if (!probabilistic || dis(gen) <= samplingRate) {
-                        edgePoints.push_back(y * image.width + x);
-                    }
-                }
-            }
-        }
-    }
-
-    MPI_Bcast(&imageWidth, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(&imageHeight, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    int numPoints = edgePoints.size();
-    MPI_Bcast(&numPoints, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    int pointsPerProcess = numPoints / size;
-    int extraPoints = numPoints % size;
-
-    std::vector<int> localEdgePoints;
-    MPI_Request request1, request2;
-
-    if (rank == 0) {
-        for (int i = 1; i < size; ++i) {
-            int startIdx = i * pointsPerProcess + std::min(i, extraPoints);
-            int endIdx = startIdx + pointsPerProcess + (i < extraPoints ? 1 : 0);
-            int count = endIdx - startIdx;
-            MPI_Isend(&count, 1, MPI_INT, i, 0, MPI_COMM_WORLD, &request1);
-            MPI_Isend(edgePoints.data() + startIdx, count, MPI_INT, i, 1, MPI_COMM_WORLD, &request2);
-        }
-        int startIdx = rank * pointsPerProcess + std::min(rank, extraPoints);
-        int endIdx = startIdx + pointsPerProcess + (rank < extraPoints ? 1 : 0);
-        localEdgePoints.insert(localEdgePoints.end(), edgePoints.begin() + startIdx, edgePoints.begin() + endIdx);
-    } else {
-        int count;
-        MPI_Irecv(&count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &request1);
-        MPI_Wait(&request1, MPI_STATUS_IGNORE);
-        localEdgePoints.resize(count);
-        MPI_Irecv(localEdgePoints.data(), count, MPI_INT, 0, 1, MPI_COMM_WORLD, &request2);
-    }
-
-    double rhoMax = std::sqrt(imageWidth * imageWidth + imageHeight * imageHeight);
-    int rhoSize = static_cast<int>(2 * rhoMax) + 1;
-    std::vector<int> localAccumulator(rhoSize * thetaResolution, 0);
-    std::vector<Segment> segments;
-
-    double centerX = imageWidth / 2.0;
-    double centerY = imageHeight / 2.0;
-
-    // Precompute cosine and sine values
-    std::vector<double> cosTheta(thetaResolution), sinTheta(thetaResolution);
-    #pragma omp parallel for num_threads(numThreads)
-    for (int thetaIndex = 0; thetaIndex < thetaResolution; thetaIndex++) {
-        double thetaRad = thetaIndex * (M_PI / thetaResolution);
-        cosTheta[thetaIndex] = cos(thetaRad);
-        sinTheta[thetaIndex] = sin(thetaRad);
-    }
-
-    MPI_Wait(&request2, MPI_STATUS_IGNORE);
-
-    // Parallelize the vote accumulation
-    #pragma omp parallel for num_threads(numThreads) collapse(2)
-    for (int i = 0; i < static_cast<int>(localEdgePoints.size()); ++i) {
-        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
-            int x = localEdgePoints[i] % imageWidth;
-            int y = localEdgePoints[i] / imageWidth;
-            double rho = (x - centerX) * cosTheta[thetaIndex] + (y - centerY) * sinTheta[thetaIndex];
-            int rhoIndex = static_cast<int>(rho + rhoMax);
-            if (rhoIndex >= 0 && rhoIndex < rhoSize) {
-                #pragma omp atomic
-                localAccumulator[rhoIndex * thetaResolution + thetaIndex]++;
-            }
-        }
-    }
-
-    std::vector<int> globalAccumulatorFlatten(localAccumulator.size(), 0);
-    MPI_Reduce(localAccumulator.data(), globalAccumulatorFlatten.data(), localAccumulator.size(), MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
-    std::vector<std::vector<int>> globalAccumulator(rhoSize, std::vector<int>(thetaResolution, 0));
-    if (rank == 0) {
-        for (int i = 0; i < rhoSize; i++) {
-            for (int j = 0; j < thetaResolution; j++) {
-                globalAccumulator[i][j] = globalAccumulatorFlatten[i * thetaResolution + j];
-            }
-        }
-
-        // Detect segments from the global accumulator
-        #pragma omp parallel for collapse(2) num_threads(numThreads) default(none) shared(globalAccumulator, rhoSize, thetaResolution, voteThreshold, imageWidth, imageHeight, segments, centerX, centerY, cosTheta, sinTheta, rhoMax)
-        for (int rhoIndex = 0; rhoIndex < rhoSize; rhoIndex++) {
-            for (int thetaIndex = 0; thetaIndex < thetaResolution; thetaIndex++) {
-                if (globalAccumulator[rhoIndex][thetaIndex] > voteThreshold) {
-                    double thetaRad = thetaIndex * (M_PI / thetaResolution);
-                    double thetaDeg = thetaRad * (180.0 / M_PI);
-                    double rho = rhoIndex - rhoMax;
-                    Point start, end;
-                    std::tie(start, end) = calculateEndpoints(rho, thetaRad, imageWidth, imageHeight);
-                    #pragma omp critical
-                    segments.push_back(Segment(start, end, rho, thetaRad, thetaDeg, globalAccumulator[rhoIndex][thetaIndex]));
-                }
-            }
-        }
-    }
-
-    return {globalAccumulator, segments};
-}
+ */

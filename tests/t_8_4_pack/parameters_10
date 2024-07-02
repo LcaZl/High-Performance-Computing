@@ -1,8 +1,8 @@
 HT_version='HT'
-HT_parallelism='openMP'
+HT_parallelism='Hybrid'
 parallel_preprocessing=true
-omp_threads=32
-pbs_np=1
+omp_threads=4
+pbs_np=8
 pbs_place='pack'
 input='HPC/dataset/synthetic_images/syn_img_10k.pnm'
 output_folder='HPC/output/syn_img_10k/'
