@@ -18,9 +18,9 @@ PARAM_DIR="HPC/tests/t_4_2_pack-excl"
 for PARAM_FILE in $PARAM_DIR/parameters_*; do
 
     # Dynamically set the environment variables from PBS directives
-    export PBS_SELECT=$(cat $PBS_NODEFILE | sort | uniq | wc -l) # Number of nodes
-    export PBS_NCPUS=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.ncpus = )\d+') # (select * cpus) -> total number of cpus.
-    export PBS_MEM=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.mem = )\d+' | sed 's/gb//') 
+    export PBS_SELECT=4
+    export PBS_NCPUS=8 # (select * cpus) -> total number of cpus.
+    export PBS_MEM=8
     export NP_VALUE=$(grep "pbs_np=" "$PARAM_FILE" | cut -d '=' -f 2)
     export OMP_PLACES=threads
 
