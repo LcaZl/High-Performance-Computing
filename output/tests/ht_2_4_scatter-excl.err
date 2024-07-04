@@ -1,0 +1,36 @@
+Fatal error in PMPI_Wait: Message truncated, error stack:
+PMPI_Wait(203)......................: MPI_Wait(request=0x7ffc302172f8, status=0x1) failed
+MPIR_Wait_impl(100).................: 
+MPIDI_CH3U_Request_unpack_uebuf(568): Message truncated; 18296 bytes received but buffer size is 18292
+Fatal error in PMPI_Wait: Message truncated, error stack:
+PMPI_Wait(203)....................: MPI_Wait(request=0x7ffd6a0bdb48, status=0x1) failed
+MPIR_Wait_impl(100)...............: 
+MPIDI_CH3U_Receive_data_found(131): Message from rank 0 and tag 1 truncated; 18296 bytes received but buffer size is 18292
+Fatal error in PMPI_Wait: Message truncated, error stack:
+PMPI_Wait(203)....................: MPI_Wait(request=0x7fffb53892c8, status=0x1) failed
+MPIR_Wait_impl(100)...............: 
+MPIDI_CH3U_Receive_data_found(131): Message from rank 0 and tag 1 truncated; 18296 bytes received but buffer size is 18292
+Fatal error in PMPI_Wait: Message truncated, error stack:
+PMPI_Wait(203)....................: MPI_Wait(request=0x7fff14a6d818, status=0x1) failed
+MPIR_Wait_impl(100)...............: 
+MPIDI_CH3U_Receive_data_found(131): Message from rank 0 and tag 1 truncated; 53832 bytes received but buffer size is 53828
+Fatal error in PMPI_Wait: Message truncated, error stack:
+PMPI_Wait(203)....................: MPI_Wait(request=0x7fffe262d908, status=0x1) failed
+MPIR_Wait_impl(100)...............: 
+MPIDI_CH3U_Receive_data_found(131): Message from rank 0 and tag 1 truncated; 163596 bytes received but buffer size is 163592
+Fatal error in PMPI_Wait: Message truncated, error stack:
+PMPI_Wait(203)....................: MPI_Wait(request=0x7ffc528da508, status=0x1) failed
+MPIR_Wait_impl(100)...............: 
+MPIDI_CH3U_Receive_data_found(131): Message from rank 0 and tag 1 truncated; 163596 bytes received but buffer size is 163592
+Fatal error in PMPI_Wait: Message truncated, error stack:
+PMPI_Wait(203)....................: MPI_Wait(request=0x7ffc34c91a58, status=0x1) failed
+MPIR_Wait_impl(100)...............: 
+MPIDI_CH3U_Receive_data_found(131): Message from rank 0 and tag 1 truncated; 163596 bytes received but buffer size is 163592
+Fatal error in PMPI_Wait: Message truncated, error stack:
+PMPI_Wait(203)....................: MPI_Wait(request=0x7ffe994fbac8, status=0x1) failed
+MPIR_Wait_impl(100)...............: 
+MPIDI_CH3U_Receive_data_found(131): Message from rank 0 and tag 1 truncated; 163596 bytes received but buffer size is 163592
+Fatal error in PMPI_Wait: Message truncated, error stack:
+PMPI_Wait(203)....................: MPI_Wait(request=0x7fff52192858, status=0x1) failed
+MPIR_Wait_impl(100)...............: 
+MPIDI_CH3U_Receive_data_found(131): Message from rank 0 and tag 1 truncated; 123200 bytes received but buffer size is 123196

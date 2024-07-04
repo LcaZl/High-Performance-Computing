@@ -196,6 +196,26 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image
  *  PARALLEL - MPI  *
 *********************/
 
+// Function to flatten a 2D vector into a 1D vector
+std::vector<int> flatten(const std::vector<std::vector<int>>& matrix) {
+    std::vector<int> flat;
+    for (const auto& row : matrix) {
+        flat.insert(flat.end(), row.begin(), row.end());
+    }
+    return flat;
+}
+
+// Function to reshape a 1D vector back into a 2D vector
+std::vector<std::vector<int>> reshape(const std::vector<int>& flat, int rows, int cols) {
+    std::vector<std::vector<int>> matrix(rows, std::vector<int>(cols));
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            matrix[i][j] = flat[i * cols + j];
+        }
+    }
+    return matrix;
+}
+
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI(Image& image, std::unordered_map<std::string, std::string>& parameters) {
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
