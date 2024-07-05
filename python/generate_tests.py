@@ -104,7 +104,7 @@ if __name__ == "__main__":
         ],
         "HT_versions": ["HT", "PHT", "PPHT"],
         "HT_parallelisms": [ "openMP", "MPI"],
-        "selects": [1, 2, 4],
+        "selects": [1, 2, 3, 4],
         "cpus": [2, 4, 8],
         "places":["pack:excl","scatter:excl"]
     }
@@ -154,18 +154,25 @@ ppht_line_len=50
         
         # BASELINE SEQUENTIAL TESTS
         for version in configurations["HT_versions"]:
-            select = cpus = np = 1
-            
-            if version == "PPHT":
-                cluster_similar_lines = str(False).lower()
-                hough_vote_threshold = 50
-                sobel_edge_detection = str(True).lower()
-                sampling_rate=90
-                
-                param_content = param_template.format( # Parallel preprocessing True
+            for place in configurations["places"]:
+                select = cpus = np = 1
+                place_str = place.replace(':','-')
+
+                if version == "PPHT":
+                    cluster_similar_lines = str(False).lower()
+                    hough_vote_threshold = 50
+                    sobel_edge_detection = str(True).lower()
+                    sampling_rate=90
+                else:
+                    cluster_similar_lines = str(True).lower()
+                    hough_vote_threshold = 120
+                    sobel_edge_detection = str(False).lower()
+                    sampling_rate=75
+
+                param_content = param_template.format(
                     HT_version=version,
                     HT_parallelism="None",
-                    parallel_preprocessing=str(True).lower(),
+                    parallel_preprocessing=str(False).lower(),
                     omp_threads=1,
                     input=image["input"],
                     output_folder=image["output_folder"],
@@ -177,36 +184,11 @@ ppht_line_len=50
                     pbs_cpus=cpus,
                     pbs_mem=mem,
                     pbs_np=np,
-                    places="pack"
+                    places=place_str
                 )
-                save_parameters_file(output_dir, cpus, select, "pack", param_content)
+                
+                save_parameters_file(output_dir, cpus, select, place_str, param_content)
                 TESTS += 1
-            else:
-                cluster_similar_lines = str(True).lower()
-                hough_vote_threshold = 120
-                sobel_edge_detection = str(False).lower()
-                sampling_rate=75
-
-            param_content = param_template.format(  # Parallel preprocessing False
-                HT_version=version,
-                HT_parallelism="None",
-                parallel_preprocessing=str(False).lower(),
-                omp_threads=1,
-                input=image["input"],
-                output_folder=image["output_folder"],
-                sobel_edge_detection=sobel_edge_detection,
-                hough_vote_threshold=hough_vote_threshold,
-                sampling_rate=sampling_rate,
-                cluster_similar_lines=cluster_similar_lines,
-                pbs_select=select,
-                pbs_cpus=cpus,
-                pbs_mem=mem,
-                pbs_np=np,
-                places="pack"
-            )
-            
-            save_parameters_file(output_dir, cpus, select, "pack", param_content)
-            TESTS += 1
 
         
         for version in configurations["HT_versions"]:
