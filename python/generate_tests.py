@@ -61,7 +61,6 @@ for PARAM_FILE in $PARAM_DIR/parameters_*; do
     # Get the parameter file for this array job
     mpiexec -np $NP_VALUE ./HPC/HoughTransform "$PARAM_FILE"
     mpiexec -np $NP_VALUE ./HPC/HoughTransform "$PARAM_FILE"
-    mpiexec -np $NP_VALUE ./HPC/HoughTransform "$PARAM_FILE"
     
 done
 
@@ -105,9 +104,9 @@ if __name__ == "__main__":
         ],
         "HT_versions": ["HT", "PHT", "PPHT"],
         "HT_parallelisms": [ "openMP", "MPI"],
-        "selects": [1, 2, 4, 8],
+        "selects": [1, 2, 4],
         "cpus": [2, 4, 8],
-        "places":["pack","scatter","pack:excl","scatter:excl"]
+        "places":["pack:excl","scatter:excl"]
     }
 
     # Template for the parameter file
@@ -230,7 +229,7 @@ ppht_line_len=50
                 # MPI TESTS
                 parallel_preprocessing = str(True).lower()
                 np = select * cpus
-                omp_threads = 1
+                omp_threads = select * cpus
 
                 place_str = place.replace(':','-')
                 
@@ -256,32 +255,33 @@ ppht_line_len=50
                 TESTS += 1
 
                 # OMP TESTS
+                parallel_preprocessing = str(True).lower()
+                np = 1
+                omp_threads = cpus * select
+
+                param_content = param_template.format(
+                    HT_version=version,
+                    HT_parallelism="openMP",
+                    parallel_preprocessing=parallel_preprocessing,
+                    omp_threads=omp_threads,
+                    input=image["input"],
+                    output_folder=image["output_folder"],
+                    sobel_edge_detection=sobel_edge_detection,
+                    hough_vote_threshold=hough_vote_threshold,
+                    sampling_rate=sampling_rate,
+                    cluster_similar_lines=cluster_similar_lines,
+                    pbs_select=select,
+                    pbs_cpus=cpus,
+                    pbs_mem=mem,
+                    pbs_np=np,
+                    places=place_str
+                )
+                save_parameters_file(output_dir, cpus, select, place_str, param_content)
+                TESTS += 1
+
+                # Hybrid TESTS
+
                 if (version != 'PPHT'):
-                    parallel_preprocessing = str(True).lower()
-                    np = 1
-                    omp_threads = cpus * select
-
-                    param_content = param_template.format(
-                        HT_version=version,
-                        HT_parallelism="openMP",
-                        parallel_preprocessing=parallel_preprocessing,
-                        omp_threads=omp_threads,
-                        input=image["input"],
-                        output_folder=image["output_folder"],
-                        sobel_edge_detection=sobel_edge_detection,
-                        hough_vote_threshold=hough_vote_threshold,
-                        sampling_rate=sampling_rate,
-                        cluster_similar_lines=cluster_similar_lines,
-                        pbs_select=select,
-                        pbs_cpus=cpus,
-                        pbs_mem=mem,
-                        pbs_np=np,
-                        places=place_str
-                    )
-                    save_parameters_file(output_dir, cpus, select, place_str, param_content)
-                    TESTS += 1
-
-                    # Hybrid TESTS
 
                     parallel_preprocessing = str(True).lower()
                     np = select

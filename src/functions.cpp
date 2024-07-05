@@ -130,12 +130,12 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
 
     if (parameters["HT_parallelism"] == "openMP" && world_rank == 0){
 
-        //if (parameters["HT_version"] == "PPHT"){
-          //  std::tie(accumulator, segments) = PPHT_OMP(img, parameters);
-        //}
-        //else if (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT"){ 
+        if (parameters["HT_version"] == "PPHT"){
+            std::tie(accumulator, segments) = PPHT_OMP(img, parameters);
+        }
+        else if (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT"){ 
             std::tie(accumulator, segments) = HT_PHT_OMP(img, parameters);
-        //}
+        }
     }
     
     else if (parameters["HT_parallelism"] == "MPI"){

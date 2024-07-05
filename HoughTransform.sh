@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -l select=2:ncpus=2:mem=8gb -l place=pack
+#PBS -l select=2:ncpus=2:mem=8gb -l place=pack:excl
 #PBS -l walltime=0:50:00
 #PBS -N ht
 #PBS -q short_cpuQ
@@ -15,13 +15,14 @@ module load mpich-3.2.1--gcc-9.1.0
 source cv2/bin/activate
 
 # Dynamically set the environment variables from PBS directives
-export PBS_SELECT=$(cat $PBS_NODEFILE | sort | uniq | wc -l) # Number of nodes
+export PBS_SELECT=2 # Number of nodes
 export PBS_NCPUS=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.ncpus = )\d+') # (select * cpus) -> total number of cpus.
 export PBS_MEM=$(qstat -f $PBS_JOBID | grep -oP '(?<=Resource_List.mem = )\d+' | sed 's/gb//') 
 PARAM_FILE="HPC/parameters"
 export NP_VALUE=$(grep "pbs_np=" $PARAM_FILE | cut -d '=' -f 2)
 export OMP_PLACES=threads
 
+mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
 mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
 
 # Unset the environment variables and deactivate virtual environment

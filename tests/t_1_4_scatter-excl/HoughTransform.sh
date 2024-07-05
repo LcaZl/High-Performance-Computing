@@ -35,7 +35,6 @@ for PARAM_FILE in $PARAM_DIR/parameters_*; do
     # Get the parameter file for this array job
     mpiexec -np $NP_VALUE ./HPC/HoughTransform "$PARAM_FILE"
     mpiexec -np $NP_VALUE ./HPC/HoughTransform "$PARAM_FILE"
-    mpiexec -np $NP_VALUE ./HPC/HoughTransform "$PARAM_FILE"
     
 done
 

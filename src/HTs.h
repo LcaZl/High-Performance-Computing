@@ -67,7 +67,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const
  * @param parameters A map containing parameters for the Hough Transform.
  * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
-//std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const Image& image, std::unordered_map<std::string, std::string>& parameters);
 
 /***********************
  *  PARALLEL - Hybrid  *

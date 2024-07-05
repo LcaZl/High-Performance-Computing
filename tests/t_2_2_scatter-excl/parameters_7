@@ -1,7 +1,7 @@
 HT_version='PPHT'
 HT_parallelism='MPI'
 parallel_preprocessing=true
-omp_threads=1
+omp_threads=4
 pbs_np=4
 pbs_place='scatter-excl'
 input='HPC/dataset/synthetic_images/syn_img_5k.pnm'

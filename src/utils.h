@@ -31,12 +31,17 @@ double degreeToRadiant(double degreeValues);
  */
 double euclideanDistance(const Point& p1, const Point& p2);
 
+// Function to flatten a 2D vector into a 1D vector
+std::vector<int> flatten(const std::vector<std::vector<int>> &matrix);
+
+// Function to reshape a 1D vector back into a 2D vector
+std::vector<std::vector<int>> reshape(const std::vector<int> &flat, int rows, int cols);
 /**************************
  * Presentation functions *
  ***************************/
 /**
  * Print the program external fixed parameters and also the internal generated.
- * 
+ *
  * @param parameters Parameters of the program.
  */
 void printParameters(const std::unordered_map<std::string, std::string>& parameters);
