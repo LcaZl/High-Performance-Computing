@@ -5,6 +5,7 @@
 **************************************************/
 
 void createSegmentMPIType(MPI_Datatype* segmentType) {
+
     int lengths[11] = {2, 2, 1, 1, 1, 1, 2, 2, 1, 1, 1};
     const int numBlocks = 11;
     MPI_Aint displacements[numBlocks];
@@ -37,11 +38,14 @@ void createSegmentMPIType(MPI_Datatype* segmentType) {
 }
 
 std::unordered_map<std::string, std::string> deserializeParameters(const std::string& serializedParameters) {
+
     std::unordered_map<std::string, std::string> parameters;
     std::istringstream iss(serializedParameters);
     std::string line;
+
     while (std::getline(iss, line)) {
         size_t pos = line.find('=');
+
         if (pos != std::string::npos) {
             std::string key = line.substr(0, pos);
             std::string value = line.substr(pos + 1);
@@ -52,9 +56,11 @@ std::unordered_map<std::string, std::string> deserializeParameters(const std::st
 }
 
 std::string serializeParameters(const std::unordered_map<std::string, std::string>& parameters) {
+
     std::ostringstream oss;
-    for (const auto& kv : parameters) {
+
+    for (const auto& kv : parameters) 
         oss << kv.first << "=" << kv.second << "\n";
-    }
+
     return oss.str();
 }

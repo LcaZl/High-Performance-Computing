@@ -4,38 +4,19 @@
 
 #include "image_preprocessing.h"
 
-/**
- * Computes the average Euclidean distance between two lines, given the four endpoints.
- *
- * @param startA Start point of segment A.
- * @param endA End point of segment A.
- * @param startB Start point of segment B.
- * @param endB End point of segment B.
- * @return The average distance between the start and end points of line segments A and B.
- */
-double computeDistance(const Point &startA, const Point &endA, const Point &startB, const Point &endB);
 
 /**
- * Computes the precision and recall of detected line segments against ground truth segments.
- * Precision: how many of the detected lines are correct.
- * Recall: how many of the ground truth lines were correctly detected.
+ * Evaluates the precision and recall of detected line segments against ground truth segments.
+ * Precision and recall are calculated based on the overlap between the ground truth segments and the detected segments.
+ * A segment is considered a true positive if it covers at least a certain percentage of a ground truth segment. This
+ * percentage is fixed at 0.8 (from "Progressive Probabilistic Hough Transform"  paper by Matas and Galambos).
  *
- * @param gt_segments Ground truth line segments.
- * @param detected_segments Detected line segments with chosen HT version.
- * @param maxDistance Maximum allowed distance for matching. If a line differ less than maxDistance it's a match.
- * @param version Distance type: 0 for HT-based, 1 for PPHT-based. Change the type of endpoints used.
- * With HT and PHT are used the point of intersection of the segment projected to the image boundaries. With PPHT the exact two points that define the segment.
- * @return A tuple containing the precision and recall values.
+ * @param gt_segments Ground truth line segments used as the reference for evaluation.
+ * @param detected_segments Detected line segments that are evaluated against the ground truth.
+ * @param parameters A map to store the calculated precision and recall values as strings.
+ * @return A tuple containing the precision and recall values. Precision is the fraction of detected segments that are true positives, while recall is the fraction of ground truth segments that are correctly detected.
  */
-std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, std::vector<Segment>& detectedSegments, std::unordered_map<std::string, std::string>& parameters);
-/**
- * Processes the accumulator to find: detected lines, detected lines above threshold, average votes for all lines and maximum number of votes.
- *
- * @param accumulator The 2D vector representing the Hough accumulator with votes for each (rho, theta) pair.
- * @param voteTreshold The minimum number of votes to consider a detection valid.
- * @return A tuple containing the founded information about the accumulator.
- */
-std::tuple<int, int, int, double> analyzeAccumulator(const std::vector<std::vector<int>> &accumulator, int voteTreshold);
+std::tuple<double, double> evaluate(const std::vector<Segment> &gt_segments, std::vector<Segment> &detected_segments, std::unordered_map<std::string, std::string> &parameters);
 
 /**
  * Calculates the intersection points of a line defined by its rho and theta parameters with the image boundaries.
@@ -48,9 +29,23 @@ std::tuple<int, int, int, double> analyzeAccumulator(const std::vector<std::vect
 std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width, int height);
 
 /**
+ * Calculates the overlapping length between two collinear segments.
+ * This function assumes the segments are collinear (as in "Progressive Probabilistic Hough Transform" paper by Matas and Galambos). 
+ * Then computes the overlap by calculating the intersections of their projections on both the x and y axes. 
+ * If the projections on both axes intersect, the Euclidean distance between the intersection points is calculated.
+ *
+ * @param seg1 First segment to check for overlap.
+ * @param seg2 Second segment to check for overlap.
+ * @return The length of the overlap if present, otherwise returns 0.0.
+ */
+double computeOverlapLength(const Segment &seg1, const Segment &seg2);
+
+/**
  * Merges similar line segments based on specified rho and theta thresholds.
  * Lines close enough in both rho and theta values are combined into a single line segment,
  * averaging their positions and summing their votes.
+ * 
+ * USED ONLY WITH HT AND PHT
  *
  * @param lines Vector of segments that may contain similar lines to be merged.
  * @param image Reference to the image on which the lines are detected.
@@ -58,7 +53,16 @@ std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width,
  * @param thetaThresholdDegrees The threshold for difference in theta values (in degrees) to consider two lines as similar.
  * @return A vector of merged line segments.
  */
-std::vector<Segment> mergeSimilarLines(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters);
+std::vector<Segment> clustering(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters);
+
+/**
+ * Processes the accumulator to find: detected lines, detected lines above threshold, average votes for all lines and maximum number of votes.
+ *
+ * @param accumulator The 2D vector representing the Hough accumulator with votes for each (rho, theta) pair.
+ * @param voteTreshold The minimum number of votes to consider a detection valid.
+ * @return A tuple containing the founded information about the accumulator.
+ */
+std::tuple<int, int, int, double> analyzeAccumulator(const std::vector<std::vector<int>> &accumulator, int voteTreshold);
 
 /**
  * Draws a line from (x0, y0) to (x1, y1) using Bresenham's algorithm on RGB image data.

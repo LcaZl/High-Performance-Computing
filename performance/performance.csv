@@ -1,0 +1,5 @@
+total_duration,htDuration,pbs_ncpus,pbs_select,sampling_rate,cluster_rho_threshold,cluster_theta_threshold,cluster_similar_lines,hough_theta,ppht_line_gap,pbs_place,ppht_line_len,gb_kernel_size,gb_sigma,HT_parallelism,pbs_mem,sed_threshold,output_disabled,omp_threads,HT_version,image_name,sed_scale_factor,parallel_preprocessing,hough_vote_threshold,precision,recall,preprocessingDuration,histogram_equalization,pbs_np,greyscale_conversion,gaussian_blur,sobel_edge_detection
+1.133893,0.312016,4,2,90,75.0,5.0,false,360,25,pack,50,7,1.9,openMP,16,100,true,4,PPHT,syn_img_5k,1,true,50,0.063348,0.280000,0.668710,false,1,true,false,false
+1.128300,0.310209,4,2,90,75.0,5.0,false,360,25,pack,50,7,1.9,openMP,16,100,true,4,PPHT,syn_img_5k,1,true,50,0.071770,0.300000,0.667038,false,1,true,false,false
+4.943080,0.324489,4,2,75.0,5.0,false,90,360,25,pack,50,7,1.9,openMP,16,100,false,4,PPHT,syn_img_5k,1,true,50,0.078759,0.330000,0.717214,false,1,true,false,false
+2.492386,0.330227,4,2,75.0,5.0,false,90,360,25,pack,50,7,1.9,openMP,16,100,false,4,PPHT,syn_img_5k,1,true,50,0.066514,0.290000,0.718832,false,1,true,false,false

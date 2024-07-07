@@ -2,6 +2,7 @@
 #include "functions.h"
 
 void environmentInfo(std::unordered_map<std::string, std::string>& parameters){
+
     int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     
@@ -25,14 +26,14 @@ void preprocessImage(Image& img, std::unordered_map<std::string, std::string>& p
     bool verbose = parameters["verbose"] == "true";
     auto startTime = MPI_Wtime();
 
-    // Paths and File Names
+    // Paths and files
     std::string outputFolder = parameters["output_folder"];
     std::string outputFormat = parameters["image_format"];
 
-    // Parallel Processing
+    // Parallel processing settings
     const bool parallel = parameters["parallel_preprocessing"] == "true";
     const int numThreads = std::stoi(parameters["omp_threads"]);
-    int stepCount = 1;
+    int stepCount = 1; // For output presentation
 
     if (verbose){  
         std::cout << "\nPreprocessing image:" << std::endl;
@@ -41,19 +42,25 @@ void preprocessImage(Image& img, std::unordered_map<std::string, std::string>& p
         if (parallel) std::cout << " - Threads: " << numThreads << std::endl;
     }
 
+    // Convenient function that essentialy perform the passed preprocessing step and then store time and image, eventually.
     auto process_step = [&](auto func, const std::string& stepDescription) {
-    auto startTime = MPI_Wtime();
+
+        // Preprocessing operation
+        auto startTime = MPI_Wtime();
         func();
         auto endTime = MPI_Wtime();
+
         if (parameters["output_disabled"] == "false")
             saveImage(img, outputFolder + parameters["image_name"] + "-" + std::to_string(stepCount) + "-" + stepDescription + outputFormat); 
+        
         auto duration = endTime - startTime;
         stepCount++;
         if (verbose)
             std::cout << " - Time taken for " << stepDescription << ": " << duration << " s" << std::endl;
     };
 
-    // Process each step
+    // Preprocessing steps
+
     if (parameters["greyscale_conversion"] == "true") {
         if (verbose)
             std::cout << "\n[" << stepCount << "] Converting the image to grayscale..." << std::endl;
@@ -80,7 +87,6 @@ void preprocessImage(Image& img, std::unordered_map<std::string, std::string>& p
 
         if (parallel)
             process_step([&] { gaussianBlurParallel(img, gbKernelSize, gbSigma, verbose, numThreads); }, "gaussian_blur_paralle");
-
         else
             process_step([&] { gaussianBlur(img, gbKernelSize, gbSigma, verbose);}, "gaussian_blur");
     }
@@ -116,17 +122,21 @@ void preprocessImage(Image& img, std::unordered_map<std::string, std::string>& p
 
 std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::string, std::string>& parameters, std::vector<Segment> gtLines) {
     
-    int world_rank, linesCount, averageVotes, maxVotes, linesAboveThreshold;
-    std::string version = parameters["HT_version"];
-    int voteThreshold = std::stoi(parameters["hough_vote_threshold"]);
+    int linesCount, averageVotes, maxVotes, linesAboveThreshold;
+
+    // HT output. For all versions.
     std::vector<std::vector<int>> accumulator;
     std::vector<Segment> segments;
-    double precision, recall;
+    double precision, recall; // Only with ground truth data -> synthetic samples.
 
+    int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
     // Hough Transform
     auto startTime = MPI_Wtime();
+
+
+    // OpenMP only
 
     if (parameters["HT_parallelism"] == "openMP" && world_rank == 0){
 
@@ -138,6 +148,7 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
         }
     }
     
+    // MPI only
     else if (parameters["HT_parallelism"] == "MPI"){
 
         if (parameters["HT_version"] == "PPHT")
@@ -145,12 +156,16 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
         else
             std::tie(accumulator, segments) = HT_PHT_MPI(img, parameters);
     }
+
+    // OpenMP and MPI
     else if (parameters["HT_parallelism"] == "Hybrid"){
+        
         if (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT")
                 std::tie(accumulator, segments) = HT_PHT_MPI_OMP(img, parameters);
-        //else
-          //  std::tie(accumulator, segments) = HT_PHT_MPI_OMP(img, parameters);
+
     }
+
+    // Sequential version (runned with select=1 and ncpus=1) -> Baseline
     else if (parameters["HT_parallelism"] == "None" && world_rank == 0){
 
         if (parameters["HT_version"] == "HT" || parameters["HT_version"] == "PHT")
@@ -161,16 +176,18 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
 
     
     if (world_rank == 0){
+
         auto endTime = MPI_Wtime();
 
-        // Cluster lines if requested
+        // Cluster lines if requested -> improve precision and recall.
         if ( parameters["cluster_similar_lines"] == "true" && world_rank == 0) 
-            segments = mergeSimilarLines(segments, img, parameters);
+            segments = clustering(segments, img, parameters);
         
         parameters["htDuration"] = std::to_string(endTime - startTime);
 
-        // Analyze accumulator
-        std::tie(linesCount, maxVotes, linesAboveThreshold, averageVotes) = analyzeAccumulator(accumulator, voteThreshold);
+        // Analyze accumulator produced by the transformation.
+        std::tie(linesCount, maxVotes, linesAboveThreshold, averageVotes) = analyzeAccumulator(accumulator, std::stoi(parameters["hough_vote_threshold"]));
+
         std::cout << std::endl 
         << "HT for "<< parameters["image_name"] << std::endl
         << "  |- # Lines analyzed        : " << linesCount << std::endl

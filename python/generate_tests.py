@@ -20,8 +20,6 @@ def save_parameters_file(output_dir, cpus, select, place, param_content):
   
 
 def generate_hough_transform_script(dir_path, cpus, select, place, place_str):
-    # Count the number of parameter files in the directory
-    param_files = [f for f in os.listdir(dir_path) if f.startswith('parameters_')]
 
     # Generate the HoughTransform.sh script
     script_content = f"""#!/bin/bash

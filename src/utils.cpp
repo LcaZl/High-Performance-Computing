@@ -28,7 +28,19 @@ double euclideanDistance(const Point& p1, const Point& p2) {
     return std::sqrt(dx * dx + dy * dy);
 }
 
-// Function to flatten a 2D vector into a 1D vector
+
+double midpointDistance(const Point& aStart, const Point& aEnd, const Point& bStart, const Point& bEnd) {
+    
+    Point aMid((aStart.x + aEnd.x) / 2, (aStart.y + aEnd.y) / 2);
+    Point bMid((bStart.x + bEnd.x) / 2, (bStart.y + bEnd.y) / 2);
+    return euclideanDistance(aMid, bMid);
+}
+
+double segmentLength(const Segment& segment) {
+    return euclideanDistance(segment.start, segment.end);
+}
+
+
 std::vector<int> flatten(const std::vector<std::vector<int>>& matrix) {
     std::vector<int> flat;
     for (const auto& row : matrix) {
@@ -37,7 +49,6 @@ std::vector<int> flatten(const std::vector<std::vector<int>>& matrix) {
     return flat;
 }
 
-// Function to reshape a 1D vector back into a 2D vector
 std::vector<std::vector<int>> reshape(const std::vector<int>& flat, int rows, int cols) {
     std::vector<std::vector<int>> matrix(rows, std::vector<int>(cols));
     for (int i = 0; i < rows; ++i) {
@@ -51,6 +62,23 @@ std::vector<std::vector<int>> reshape(const std::vector<int>& flat, int rows, in
 /**************************
  * Presentation functions *
 ***************************/
+
+void printParameters(const std::unordered_map<std::string, std::string>& parameters) {
+    // Find the maximum key length
+    std::cout << "------ Program Parameters ------\n";
+    size_t maxKeyLength = 0;
+    for (const auto& pair : parameters) {
+        if (pair.first.length() > maxKeyLength) {
+            maxKeyLength = pair.first.length();
+        }
+    }
+    // Print the parameters with aligned keys
+    for (const auto& pair : parameters) {
+        std::cout << std::setw(maxKeyLength) << std::left << pair.first << " : " << pair.second << std::endl;
+    }
+    std::cout << "--------------------------------\n";
+
+}
 
 void imageInfo(const Image& img) {
 
@@ -121,22 +149,7 @@ void houghTransformInfo(std::unordered_map<std::string, std::string>& parameters
 /***************************
  * Input/Output management *
 ****************************/
-void printParameters(const std::unordered_map<std::string, std::string>& parameters) {
-    // Find the maximum key length
-    std::cout << "------ Program Parameters ------\n";
-    size_t maxKeyLength = 0;
-    for (const auto& pair : parameters) {
-        if (pair.first.length() > maxKeyLength) {
-            maxKeyLength = pair.first.length();
-        }
-    }
-    // Print the parameters with aligned keys
-    for (const auto& pair : parameters) {
-        std::cout << std::setw(maxKeyLength) << std::left << pair.first << " : " << pair.second << std::endl;
-    }
-    std::cout << "--------------------------------\n";
 
-}
 
 bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::string>& parameters) {
 
@@ -309,22 +322,16 @@ std::unordered_map<std::string, std::vector<Segment>> loadGroundTruthData(const 
 
 // Function to save performance data to a CSV file
 void savePerformance(const std::unordered_map<std::string, std::string>& parameters) {
+
     // Keys to exclude from saving
     std::vector<std::string> keys_to_exclude = {
         "input", "output_folder", "performance_path", "converter_program_location", "conversion_format", "verbose", "image_format",
         "input_folder","convert_output",
     };
 
-    // Extract the path from the parameters
     std::string path = parameters.at("performance_path");
-
-    // Determine the filename based on the "run_for" key in the parameters
     std::string filename = path + "/performance.csv";
-
-    // Check if the file exists
     bool file_exists_flag = fileExists(filename);
-
-    // Open the file in append mode
     std::ofstream file(filename, std::ios::app);
 
     if (!file) {
@@ -359,8 +366,6 @@ void savePerformance(const std::unordered_map<std::string, std::string>& paramet
         }
     }
     file << "\n";
-
-    // Close the file
     file.close();
 }
 
@@ -378,10 +383,8 @@ void saveImage(const Image& img, const std::string& outputPath) {
         file << "P5\n";
     }
 
-    // Write the image dimensions and the maximum pixel value. 
+    // Write the image dimensions and the maximum pixel value. Then data.
     file << img.width << " " << img.height << "\n255\n";
-
-    // Write the image data.
     file.write(reinterpret_cast<const char*>(img.data.data()), img.data.size());
 
     if (!file) {
@@ -399,6 +402,7 @@ void convertImages(const std::string& path, const std::string& outputFormat, std
     }
 
     std::string conversion_program_path(parameters["converter_program_location"]);
+
     // Command to convert images with python script
     std::string convert_command = "python3 " + conversion_program_path + " " + path + " " + outputFormat;
     std::cout << "Executing conversion command: " << convert_command << std::endl;
@@ -408,23 +412,13 @@ void convertImages(const std::string& path, const std::string& outputFormat, std
         std::cerr << "Failed to execute the conversion command successfully." << std::endl;
     }
 
-    // Command to remove all .pnm files
+    // Remove all .pnm files
     std::string removeCommand = "find " + path + " -type f -name '*.pnm' -exec rm {} +";
     int removeResult = std::system(removeCommand.c_str());
 
     if (removeResult != 0) {
         std::cerr << "Failed to remove .pnm files." << std::endl;
     }
-}
-
-bool fileExists(const std::string& path) {
-    struct stat buffer;
-    return (stat(path.c_str(), &buffer) == 0);
-}
-
-bool pathExists(const std::string& path) {
-    struct stat buffer;
-    return (stat(path.c_str(), &buffer) == 0);
 }
 
 void createOrEmptyDirectory(const std::string& path) {
@@ -467,5 +461,13 @@ void removeContents(const std::string& path) {
     }
 }
 
+bool fileExists(const std::string& path) {
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
 
+bool pathExists(const std::string& path) {
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
 

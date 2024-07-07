@@ -1,33 +1,5 @@
 #include "HTs_evaluation.h"
 
-#include <vector>
-
-double computeDistance(const Point &startA, const Point &endA, const Point &startB, const Point &endB){
-
-    double start_distance = euclideanDistance(startA, startB);
-    double end_distance = euclideanDistance(endA, endB);
-
-    return (start_distance + end_distance) / 2.0; // Average distance between start and end points
-
-}
-
-double segmentLength(const Segment& segment) {
-    return euclideanDistance(segment.start, segment.end);
-}
-
-double computeOverlapLength(const Segment& seg1, const Segment& seg2) {
-    // Simplified overlap calculation assuming collinear segments
-    double x1 = std::max(std::min(seg1.start.x, seg1.end.x), std::min(seg2.start.x, seg2.end.x));
-    double x2 = std::min(std::max(seg1.start.x, seg1.end.x), std::max(seg2.start.x, seg2.end.x));
-    double y1 = std::max(std::min(seg1.start.y, seg1.end.y), std::min(seg2.start.y, seg2.end.y));
-    double y2 = std::min(std::max(seg1.start.y, seg1.end.y), std::max(seg2.start.y, seg2.end.y));
-    
-    if (x1 < x2 && y1 < y2) {
-        return euclideanDistance(Point(x1, y1), Point(x2, y2));
-    }
-    return 0.0;
-}
-
 std::tuple<double, double> evaluate(const std::vector<Segment>& gt_segments, std::vector<Segment>& detected_segments, std::unordered_map<std::string, std::string>& parameters) {
     
     int true_positives = 0;
@@ -136,13 +108,22 @@ std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width,
     return {start, end};
 }
 
-double midpointDistance(const Point& aStart, const Point& aEnd, const Point& bStart, const Point& bEnd) {
-    Point aMid((aStart.x + aEnd.x) / 2, (aStart.y + aEnd.y) / 2);
-    Point bMid((bStart.x + bEnd.x) / 2, (bStart.y + bEnd.y) / 2);
-    return std::hypot(aMid.x - bMid.x, aMid.y - bMid.y);
+double computeOverlapLength(const Segment& seg1, const Segment& seg2) {
+
+    // Simplified overlap calculation assuming collinear segments
+    double x1 = std::max(std::min(seg1.start.x, seg1.end.x), std::min(seg2.start.x, seg2.end.x));
+    double x2 = std::min(std::max(seg1.start.x, seg1.end.x), std::max(seg2.start.x, seg2.end.x));
+    double y1 = std::max(std::min(seg1.start.y, seg1.end.y), std::min(seg2.start.y, seg2.end.y));
+    double y2 = std::min(std::max(seg1.start.y, seg1.end.y), std::max(seg2.start.y, seg2.end.y));
+    
+    if (x1 < x2 && y1 < y2) {
+        return euclideanDistance(Point(x1, y1), Point(x2, y2));
+    }
+    return 0.0;
 }
 
-std::vector<Segment> mergeSimilarLines(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+
+std::vector<Segment> clustering(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
     std::vector<Segment> mergedLines;
     double thetaThresholdDegrees = std::stod(parameters["cluster_theta_threshold"]);
     double rhoThreshold = std::stod(parameters["cluster_rho_threshold"]);
@@ -262,39 +243,6 @@ std::vector<Segment> mergeSimilarLines(std::vector<Segment>& lines, const Image&
     } while (segmentsMerged);
 
     return mergedLines;
-}
-
-std::vector<Segment> mergeOverlappingSegments(std::vector<Segment>& segments, double distance_threshold, double angle_threshold) {
-    std::vector<Segment> merged_segments;
-    
-    std::vector<bool> merged(segments.size(), false);
-
-    for (size_t i = 0; i < segments.size(); ++i) {
-        if (merged[i]) continue;
-
-        Segment merged_segment = segments[i];
-        for (size_t j = i + 1; j < segments.size(); ++j) {
-            if (merged[j]) continue;
-
-            double distance = euclideanDistance(segments[i].start, segments[j].start);
-            double angle_diff = std::fabs(segments[i].thetaRad - segments[j].thetaRad);
-
-            if (distance < distance_threshold && angle_diff < angle_threshold) {
-                // Merge segments
-                merged_segment.start.x = std::min(merged_segment.start.x, segments[j].start.x);
-                merged_segment.start.y = std::min(merged_segment.start.y, segments[j].start.y);
-                merged_segment.end.x = std::max(merged_segment.end.x, segments[j].end.x);
-                merged_segment.end.y = std::max(merged_segment.end.y, segments[j].end.y);
-                merged_segment.votes += segments[j].votes;
-
-                merged[j] = true;
-            }
-        }
-
-        merged_segments.push_back(merged_segment);
-    }
-
-    return merged_segments;
 }
 
 void drawLine(int x0, int y0, int x1, int y1, std::vector<unsigned char>& rgb_data, int width, int height, int color) {

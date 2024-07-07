@@ -31,11 +31,44 @@ double degreeToRadiant(double degreeValues);
  */
 double euclideanDistance(const Point& p1, const Point& p2);
 
-// Function to flatten a 2D vector into a 1D vector
-std::vector<int> flatten(const std::vector<std::vector<int>> &matrix);
+/**
+ * Calculates the Euclidean distance between the midpoints of two line segments defined by their endpoints.
+ *
+ * @param aStart The starting point of the first segment.
+ * @param aEnd The ending point of the first segment.
+ * @param bStart The starting point of the second segment.
+ * @param bEnd The ending point of the second segment.
+ * @return The distance between the midpoints of the two line segments as a double.
+ */
+double midpointDistance(const Point &aStart, const Point &aEnd, const Point &bStart, const Point &bEnd);
 
-// Function to reshape a 1D vector back into a 2D vector
-std::vector<std::vector<int>> reshape(const std::vector<int> &flat, int rows, int cols);
+/**
+ * Calculates the length of a segment using the Euclidean distance formula.
+ *
+ * @param segment The segment for which the length is to be calculated.
+ * @return The Euclidean length of the segment as a double.
+ */
+double segmentLength(const Segment &segment);
+
+/**
+ * Flattens a 2D vector of integers into a single 1D vector.
+ *
+ * @param matrix The 2D vector of integers to be flattened.
+ * @return A 1D vector containing all elements of the 2D matrix in row-major order.
+ */std::vector<int> flatten(const std::vector<std::vector<int>> &matrix);
+
+/**
+ * Reshapes a 1D vector of integers into a 2D vector with specified number of rows and columns.
+ * The elements are filled into the 2D vector in row-major order based on the sequence in the 1D vector.
+ *
+ * @param flat The 1D vector of integers to be reshaped into a 2D matrix.
+ * @param rows The number of rows the resulting matrix should have.
+ * @param cols The number of columns the resulting matrix should have.
+ * @return A 2D vector of integers structured into the specified rows and columns.
+ * 
+ */std::vector<std::vector<int>> reshape(const std::vector<int> &flat, int rows, int cols);
+
+
 /**************************
  * Presentation functions *
  ***************************/
@@ -124,7 +157,7 @@ void saveImage(const Image& img, const std::string& outputPath);
 
 /**
  * Converts all images in the given directory, or a single image, to the specified output format using an external python script.
- * 
+ *
  * @param path Path to the image or directory containing images.
  * @param outputFormat Desired output image format.
  * @param parameters Map to store parameters extracted from the parameters file.

@@ -12,16 +12,36 @@ resolution = (20000,20000) # Images width and height
 lines_per_image = 300 # Number of lines per images
 lines_len = 1200 # pixels
 
+# Test images
 # 5kx5k 100lx400p
 # 10kx10k 200x800p
 # 20kx20k 300x1200p
 
+def find_csv_file(directory):
+    csv_files = [f for f in os.listdir(directory) if f.endswith('.csv')]
+    if len(csv_files) != 1:
+        raise FileNotFoundError("No CSV file found or multiple CSV files present. Please inspect the directory.")
+    return os.path.join(directory, csv_files[0])
+
+def ensure_directory_and_csv_file(output_dir):
+    if os.path.exists(output_dir):
+        return find_csv_file(output_dir)
+    else:
+        os.makedirs(output_dir, exist_ok=True)
+        print(f"Created directory: {output_dir}")
+        return os.path.join(output_dir, ground_truth_filename)
+
+def get_next_image_index(directory):
+    image_files = [f for f in os.listdir(directory) if f.startswith('image_') and f.endswith('.pnm')]
+    if not image_files:
+        return 0
+    max_index = max(int(f.split('_')[1].split('.')[0]) for f in image_files)
+    return max_index + 1
 
 # This function calculates the Hough transform parameters for a line.
 def calculate_line_intersections(x1, y1, x2, y2, width, height):
     points = []
 
-    # Adjust width and height to be max indexable values
     width -= 1
     height -= 1
 
@@ -96,6 +116,7 @@ def generate_synthetic_image_and_ground_truth(width, height, lines, line_length)
     for _ in range(lines):
         valid_segment = False
         while not valid_segment:
+
             # Randomly choose a starting point
             x1, y1 = np.random.randint(0, width), np.random.randint(0, height)
 
@@ -123,26 +144,10 @@ def generate_synthetic_image_and_ground_truth(width, height, lines, line_length)
             
     return base_background, ground_truth
 
-def find_csv_file(directory):
-    csv_files = [f for f in os.listdir(directory) if f.endswith('.csv')]
-    if len(csv_files) != 1:
-        raise FileNotFoundError("No CSV file found or multiple CSV files present. Please inspect the directory.")
-    return os.path.join(directory, csv_files[0])
 
-def ensure_directory_and_csv_file(output_dir):
-    if os.path.exists(output_dir):
-        return find_csv_file(output_dir)
-    else:
-        os.makedirs(output_dir, exist_ok=True)
-        print(f"Created directory: {output_dir}")
-        return os.path.join(output_dir, ground_truth_filename)
 
-def get_next_image_index(directory):
-    image_files = [f for f in os.listdir(directory) if f.startswith('image_') and f.endswith('.pnm')]
-    if not image_files:
-        return 0
-    max_index = max(int(f.split('_')[1].split('.')[0]) for f in image_files)
-    return max_index + 1
+
+
 
 if __name__ == "__main__":
 

@@ -55,13 +55,10 @@ cluster_similar_lines=true
 cluster_theta_threshold=5.0
 cluster_rho_threshold=75.0
 sampling_rate=75
-ppht_line_gap=30
-ppht_line_len=20
+ppht_line_gap=25
+ppht_line_len=50
 
 PPHT 
-# 5kx5k 100lx400p
-# 10kx10k 200x800p
-# 20kx20k 300x1200p
 greyscale_conversion=true
 gaussian_blur=false
 gb_kernel_size=7
@@ -75,6 +72,6 @@ hough_theta=360
 cluster_similar_lines=false
 cluster_theta_threshold=5.0
 cluster_rho_threshold=75.0
-sampling_rate=95
+sampling_rate=90
 ppht_line_gap=25
 ppht_line_len=50

@@ -11,6 +11,7 @@ void convertToGrayscale(Image& img) {
     if (!img.isColor) return;
 
     std::vector<unsigned char> grayscaleData;
+
     // Pre-allocate memory for grayscale data.
     grayscaleData.reserve(img.width * img.height);
 
@@ -29,12 +30,6 @@ void convertToGrayscale(Image& img) {
 }
 
 void equalizeHistogram(Image& img) {
-
-    // Ensure the image is in grayscale.
-    if (img.isColor) {
-        std::cerr << "Image is not in grayscale. Please enable conversion in parameters file." << std::endl;
-        return;
-    }
 
     const size_t imageSize = img.width * img.height;
     std::vector<unsigned int> histogram(256, 0);
@@ -139,14 +134,14 @@ void gaussianBlurPixel(const Image& img, Image& output, const std::vector<std::v
 
     for (int ky = -edge; ky <= edge; ky++) {
         for (int kx = -edge; kx <= edge; kx++) {
-            // Calculate actual index accounting for boundary conditions
+            // Calculate actual index - account for boundary conditions
             int realY = std::max(0, std::min(y + ky, img.height - 1));
             int realX = std::max(0, std::min(x + kx, img.width - 1));
             // Accumulate the blurred value
             blurredPixel += img.data[realY * img.width + realX] * kernel[ky + edge][kx + edge];
         }
     }
-    // Assign the blurred pixel, clamping to valid byte range
+    // Assign the blurred pixel, clamp to valid byte range
     output.data[y * output.width + x] = static_cast<unsigned char>(std::min(std::max(int(blurredPixel), 0), 255));
 }
 

@@ -4,12 +4,12 @@
 #include "utils.h"
 #include "HTs_evaluation.h"
 
-/**************
- *   SERIAL   *
-***************/
+/******************
+ *   SEQUENTIAL   *
+*******************/
 
 /**
- * Performs the standard sequential Hough Transform (HT) or Probabilistic Hough Transform (PHT) to detect lines in the given image, sequential version.
+ * Performs the Hough Transform (HT) or Probabilistic Hough Transform (PHT) to detect lines in the given image, sequential version.
  *
  * @param image Reference to the image object to analyze.
  * @param parameters A map containing parameters for the Hough Transform.
@@ -81,4 +81,5 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
  * @return A pair composed of: 2D vector representing the accumulator array, segments detected.
  */
 std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI_OMP(Image& image, std::unordered_map<std::string, std::string>& parameters);
+
 #endif

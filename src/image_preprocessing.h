@@ -37,7 +37,7 @@ void toBinary(Image &img);
 ***************************************************************/
 
 /**
- * Calculates and returns a Gaussian kernel.
+ * Calculates and returns a Gaussian kernel. Matrix of kernelSize x kernelSize.
  *
  * @param kernelSize The size of the kernel (must be odd).
  * @param sigma The standard deviation of the Gaussian function.

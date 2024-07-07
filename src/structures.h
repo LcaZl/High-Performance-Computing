@@ -7,31 +7,29 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
+#include <cstring>
 #include <unordered_map>
 #include <sys/stat.h> // For stat()
 #include <cstdlib> // For std::system
 #include <iomanip> // Include for std::setprecision
-#include <chrono> // Include for std::chrono
 #include <dirent.h> // for I/O
 #include <unistd.h> //for I/O
 #include <random>
-#include <cstdlib>
 #include <tuple>
-#include <mpi.h>
-#include <cstring>
 
+#include <mpi.h>
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 
-/************************
- *  Internal Structure  *
-*************************/
+/*************************
+ *  Internal Structures  *
+**************************/
 
 /**
  * Used to store an image and relative information. 
- * Has two function for serialization and deserialization, used only for the MPI communication when
- * image must be shared among processes.
+ * Has two function for serialization and deserialization, used for the MPI communication experiments when
+ * image is shared among processes.
 */
 
 struct Image {
@@ -91,12 +89,13 @@ struct Point {
 };
 
 /**
- * Used to store segments information of different kind.
+ * Used to store segments information on two level: detection and ground truth.
  * 
- * 1 - Used for detected segments/lines with different HT versions (first constructor).
- * 2 - Used for ground truth data (<inter>.. attributes and second constructor).
+ * - Used for detected segments/lines with different HT versions (first constructor).
+ * - Used for ground truth data (<inter>.. attributes and second constructor).
 */
 struct Segment {
+
     // Attributes used only by HTs.
     Point start;
     Point end;
@@ -107,15 +106,17 @@ struct Segment {
 
     // Segment augmented to reach the image border, keeping the slope.
     // Attributes used only for ground truth data
-    Point intersectionStart; // Start point projection on image border
-    Point intersectionEnd; // End point projection on image border
-    double interRho; // Rho of the longer segment
+    Point intersectionStart; // Start point projection on image borders
+    Point intersectionEnd; // End point projection on image borders
+    double interRho; // Rho of the segment projected on image borders
     double interThetaRad; // Intersection line's theta in radians
     double interThetaDeg; // Intersection line's theta in degree
 
+    // First constructor
     Segment(Point s, Point e, double r, double tr, double td, int v) :
         start(s), end(e), rho(r), thetaRad(tr), thetaDeg(td), votes(v), intersectionStart(Point(0,0)), intersectionEnd(Point(0,0)), interRho(0), interThetaRad(0), interThetaDeg(0){}
 
+    // Second constructor
     Segment(Point s, Point e, double r, double tr, double td, Point i1, Point i2, double interR, double interTr, double interTd) :
         start(s), end(e), rho(r), thetaRad(tr), thetaDeg(td), votes(0), intersectionStart(i1), intersectionEnd(i2), interRho(interR), interThetaRad(interTr), interThetaDeg(interTd){}
 
@@ -128,7 +129,7 @@ struct Segment {
 /**
  * Creates a custom MPI data type for the Segment structure to facilitate MPI communication.
  *
- * @param segmentType Pointer to the MPI_Datatype to be created.
+ * @param segmentType Pointer to the MPI_Datatype.
  */
 void createSegmentMPIType(MPI_Datatype* segmentType);
 
