@@ -45,3 +45,5 @@ total_duration,htDuration,pbs_ncpus,pbs_select,sampling_rate,cluster_rho_thresho
 14.357831,8.098909,2,1,75,75.0,5.0,true,360,25,pack-excl,50,7,1.9,MPI,8,100,true,2,PHT,syn_img_10k,1,true,120,0.946809,0.890000,5.327289,false,2,true,false,false
 4.256443,1.137143,2,1,75,75.0,5.0,true,360,25,pack-excl,50,7,1.9,openMP,8,100,true,2,PHT,syn_img_10k,1,true,120,0.984043,0.925000,2.675252,false,1,true,false,false
 4.222008,1.108797,2,1,75,75.0,5.0,true,360,25,pack-excl,50,7,1.9,openMP,8,100,true,2,PHT,syn_img_10k,1,true,120,0.983957,0.920000,2.667741,false,1,true,false,false
+4.591997,1.478100,2,1,75,75.0,5.0,true,360,25,pack-excl,50,7,1.9,Hybrid,8,100,true,2,PHT,syn_img_10k,1,true,120,0.983957,0.920000,2.667291,false,1,true,false,false
+4.610822,1.482556,2,1,75,75.0,5.0,true,360,25,pack-excl,50,7,1.9,Hybrid,8,100,true,2,PHT,syn_img_10k,1,true,120,0.983957,0.920000,2.671006,false,1,true,false,false
