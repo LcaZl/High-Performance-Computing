@@ -37,7 +37,7 @@ module load mpich-3.2.1--gcc-9.1.0
 
 # Use previously created virtual environment with OpenCV (see README)
 source cv2/bin/activate
-PARAM_DIR="HPC/tests/t_{select}_{cpus}_{place_str}"
+PARAM_DIR="{dir_path}"
 
 for PARAM_FILE in $PARAM_DIR/parameters_*; do
 
@@ -142,54 +142,16 @@ ppht_line_len=50
 
 
     # Directory to save the parameter files
-    output_dir = "HPC/tests/"
+    output_dir = "HPC/tests/ppht_only_tests"
     os.makedirs(output_dir, exist_ok=True)
     mem = 8
     dirs = set()
     
     # Generate the configurations
     for image in configurations["images"]:
-        
-        # BASELINE SEQUENTIAL TESTS
-        for version in configurations["HT_versions"]:
-            for place in configurations["places"]:
-                select = cpus = np = 1
-                place_str = place.replace(':','-')
-
-                if version == "PPHT":
-                    cluster_similar_lines = str(False).lower()
-                    hough_vote_threshold = 50
-                    sobel_edge_detection = str(True).lower()
-                    sampling_rate=90
-                else:
-                    cluster_similar_lines = str(True).lower()
-                    hough_vote_threshold = 120
-                    sobel_edge_detection = str(False).lower()
-                    sampling_rate=75
-
-                param_content = param_template.format(
-                    HT_version=version,
-                    HT_parallelism="None",
-                    parallel_preprocessing=str(False).lower(),
-                    omp_threads=1,
-                    input=image["input"],
-                    output_folder=image["output_folder"],
-                    sobel_edge_detection=sobel_edge_detection,
-                    hough_vote_threshold=hough_vote_threshold,
-                    sampling_rate=sampling_rate,
-                    cluster_similar_lines=cluster_similar_lines,
-                    pbs_select=select,
-                    pbs_cpus=cpus,
-                    pbs_mem=mem,
-                    pbs_np=np,
-                    places=place_str
-                )
-                
-                save_parameters_file(output_dir, cpus, select, place_str, param_content)
-                TESTS += 1
 
         
-        for version in configurations["HT_versions"]:
+        for version in ['PPHT']:
     
             # Adjust HT settings accordingly to the version
             if version == "PPHT":

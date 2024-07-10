@@ -590,6 +590,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
     int initialVoteThreshold = std::stoi(parameters["hough_vote_threshold"]);
     int lineGap = std::stoi(parameters["ppht_line_gap"]);
     int lineLength = std::stoi(parameters["ppht_line_len"]);
+    int numThreads = std::stoi(parameters["omp_threads"]);
 
     double rhoMax = std::sqrt(image.width * image.width + image.height * image.height);
     int rhoSize = static_cast<int>(2 * rhoMax) + 1;
@@ -615,15 +616,21 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
         sinTheta[thetaIndex] = sin(thetaRad);
     }
 
-    #pragma omp parallel for reduction(+:totalPoints, sampledPoints)
-    for (int y = 0; y < image.height; y++) {
-        for (int x = 0; x < image.width; x++) {
-            if (image.data[y * image.width + x] > 0) {
-                totalPoints++;
-                if (dis(gen) <= samplingRate) {
-                    #pragma omp critical
-                    points.push_back(y * image.width + x);
-                    sampledPoints++;
+
+    #pragma omp parallel num_threads(numThreads)
+    {
+        std::mt19937 gen(rd() + omp_get_thread_num());
+        std::uniform_int_distribution<> dis(0, 100);
+
+        #pragma omp for collapse(2) reduction(+:totalPoints)
+        for (int y = 0; y < image.height; ++y) {
+            for (int x = 0; x < image.width; ++x) {
+                if (image.data[y * image.width + x] > 0) {
+                    ++totalPoints;
+                    if (dis(gen) <= samplingRate) {
+                        #pragma omp critical
+                        points.push_back(y * image.width + x);
+                    }
                 }
             }
         }
@@ -633,7 +640,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
     std::vector<bool> processed(points.size(), false); // To mark points as processed
     std::uniform_int_distribution<> point_dis(0, points.size() - 1);
 
-    #pragma omp parallel
+    #pragma omp parallel num_threads(numThreads)
     {
         std::vector<bool> localProcessed(points.size(), false);
 

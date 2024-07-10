@@ -180,7 +180,7 @@ std::vector<Segment> HoughTransformation(Image& img, std::unordered_map<std::str
         auto endTime = MPI_Wtime();
 
         // Cluster lines if requested -> improve precision and recall.
-        if ( parameters["cluster_similar_lines"] == "true" && world_rank == 0) 
+        if ( parameters["HT_version"] != "PPHT" && parameters["cluster_similar_lines"] == "true" && world_rank == 0) 
             segments = clustering(segments, img, parameters);
         
         parameters["htDuration"] = std::to_string(endTime - startTime);

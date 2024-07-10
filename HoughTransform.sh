@@ -23,7 +23,6 @@ export NP_VALUE=$(grep "pbs_np=" $PARAM_FILE | cut -d '=' -f 2)
 export OMP_PLACES=threads
 
 mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
-mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
 
 # Unset the environment variables and deactivate virtual environment
 unset PBS_SELECT

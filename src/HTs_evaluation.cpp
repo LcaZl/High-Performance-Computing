@@ -129,11 +129,132 @@ std::vector<Segment> clustering(std::vector<Segment>& lines, const Image& image,
     double rhoThreshold = std::stod(parameters["cluster_rho_threshold"]);
     const double thetaThresholdRadians = degreeToRadiant(thetaThresholdDegrees);
     std::string HT_version = parameters["HT_version"];
-    double distance_threshold = 10.0; // Example value, adjust as needed
 
-    bool segmentsMerged;
+    bool linesMerged;
     do {
-        segmentsMerged = false;
+        linesMerged = false;
+        std::vector<std::vector<Segment>> groups;
+
+        // Step 1: Group lines that are similar in terms of rho, theta, and endpoints
+        for (auto& line : lines) {
+            bool merged = false;
+            for (auto& group : groups) {
+                if (HT_version == "PPHT") {
+                    // Use both midpoint distance and angle for PPHT
+                    double distance = midpointDistance(group[0].start, group[0].end, line.start, line.end);
+                    double angleDiff = std::abs(group[0].thetaRad - line.thetaRad);
+                    if (distance < rhoThreshold && angleDiff < thetaThresholdRadians) {
+                        group.push_back(line);
+                        merged = true;
+                        break;
+                    }
+                } else {
+                    // Use rho and theta for HT and PHT
+                    if (std::abs(group[0].rho - line.rho) < rhoThreshold &&
+                        std::abs(group[0].thetaRad - line.thetaRad) < thetaThresholdRadians) {
+                        group.push_back(line);
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+            if (!merged) {
+                groups.push_back({line});
+            }
+        }
+
+        // Step 2: For each group, calculate the average line properties and create the merged line
+        mergedLines.clear();
+        for (auto& group : groups) {
+            if (group.size() == 1) {
+                mergedLines.push_back(group[0]);
+            } else {
+                int totalVotes = 0;
+                double sumRho = 0.0, sumThetaRad = 0.0;
+                Point sumStart(0, 0), sumEnd(0, 0);
+
+                // Summing properties weighted by votes
+                for (auto& line : group) {
+                    totalVotes += line.votes;
+                    sumRho += line.rho * line.votes;
+                    sumThetaRad += line.thetaRad * line.votes;
+                    sumStart.x += line.start.x * line.votes;
+                    sumStart.y += line.start.y * line.votes;
+                    sumEnd.x += line.end.x * line.votes;
+                    sumEnd.y += line.end.y * line.votes;
+                }
+
+                // Calculating weighted averages
+                double avgRho = sumRho / totalVotes;
+                double avgThetaRad = sumThetaRad / totalVotes;
+                Point avgStart(sumStart.x / totalVotes, sumStart.y / totalVotes);
+                Point avgEnd(sumEnd.x / totalVotes, sumEnd.y / totalVotes);
+
+                // For HT and PHT, recalculate the endpoints
+                Point newStart, newEnd;
+                std::tie(newStart, newEnd) = calculateEndpoints(avgRho, avgThetaRad, image.width, image.height);
+                mergedLines.push_back({newStart, newEnd, avgRho, avgThetaRad, avgThetaRad * (180 / M_PI), totalVotes});
+            }
+        }
+
+        // Check if any segments were merged
+        if (mergedLines.size() < lines.size()) {
+            linesMerged = true;
+            lines = mergedLines;
+        }
+
+    } while (linesMerged);
+
+    return mergedLines;
+}
+
+void drawLine(int x0, int y0, int x1, int y1, std::vector<unsigned char>& rgb_data, int width, int height, int color) {
+    int dx = std::abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -std::abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2;
+
+    while (true) {
+        if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height) {
+            int idx = (y0 * width + x0) * 3; // Calculate pixel index in the RGB array
+            if (color == 0) {
+                rgb_data[idx] = 255;     // Set red value
+                rgb_data[idx + 1] = 0;   // Set green value to zero
+                rgb_data[idx + 2] = 0;   // Set blue value to zero
+            } else if (color == 1) {
+                rgb_data[idx] = 0;       // Set red value to zero
+                rgb_data[idx + 1] = 0; // Set green value
+                rgb_data[idx + 2] = 255;   // Set blue value to zero
+            }
+        }
+        if (x0 == x1 && y0 == y1) break; // Exit loop when end point is reached
+        e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; } // Adjust x position and error term
+        if (e2 <= dx) { err += dx; y0 += sy; } // Adjust y position and error term
+    }
+}
+
+void drawLinesOnImage(std::vector<Segment> &lines, Image& image, int color) {
+
+    for (const Segment& line : lines) {
+            drawLine(line.start.x, line.start.y, line.end.x, line.end.y, image.data, image.width, image.height, color);
+    }
+
+    image.isColor = true;
+}
+
+
+/**
+ * 
+ * std::vector<Segment> clustering(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
+    std::vector<Segment> mergedLines;
+    double thetaThresholdDegrees = std::stod(parameters["cluster_theta_threshold"]);
+    double rhoThreshold = std::stod(parameters["cluster_rho_threshold"]);
+    const double thetaThresholdRadians = degreeToRadiant(thetaThresholdDegrees);
+    std::string HT_version = parameters["HT_version"];
+
+    bool linesMerged;
+    do {
+        linesMerged = false;
         std::vector<std::vector<Segment>> groups;
 
         // Step 1: Group lines that are similar in terms of rho, theta, and endpoints
@@ -236,45 +357,12 @@ std::vector<Segment> clustering(std::vector<Segment>& lines, const Image& image,
 
         // Check if any segments were merged
         if (mergedLines.size() < lines.size()) {
-            segmentsMerged = true;
+            linesMerged = true;
             lines = mergedLines;
         }
 
-    } while (segmentsMerged);
+    } while (linesMerged);
 
     return mergedLines;
 }
-
-void drawLine(int x0, int y0, int x1, int y1, std::vector<unsigned char>& rgb_data, int width, int height, int color) {
-    int dx = std::abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    int dy = -std::abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy, e2;
-
-    while (true) {
-        if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height) {
-            int idx = (y0 * width + x0) * 3; // Calculate pixel index in the RGB array
-            if (color == 0) {
-                rgb_data[idx] = 255;     // Set red value
-                rgb_data[idx + 1] = 0;   // Set green value to zero
-                rgb_data[idx + 2] = 0;   // Set blue value to zero
-            } else if (color == 1) {
-                rgb_data[idx] = 0;       // Set red value to zero
-                rgb_data[idx + 1] = 0; // Set green value
-                rgb_data[idx + 2] = 255;   // Set blue value to zero
-            }
-        }
-        if (x0 == x1 && y0 == y1) break; // Exit loop when end point is reached
-        e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; } // Adjust x position and error term
-        if (e2 <= dx) { err += dx; y0 += sy; } // Adjust y position and error term
-    }
-}
-
-void drawLinesOnImage(std::vector<Segment> &lines, Image& image, int color) {
-
-    for (const Segment& line : lines) {
-            drawLine(line.start.x, line.start.y, line.end.x, line.end.y, image.data, image.width, image.height, color);
-    }
-
-    image.isColor = true;
-}
+ */
