@@ -150,9 +150,46 @@ ppht_line_len=50
     # Generate the configurations
     for image in configurations["images"]:
 
-        
-        for version in ['PPHT']:
-    
+        # BASELINE SEQUENTIAL TESTS
+        for version in configurations["HT_versions"]:
+            for place in configurations["places"]:
+                select = cpus = np = 1
+                place_str = place.replace(':','-')
+
+                if version == "PPHT":
+                    cluster_similar_lines = str(False).lower()
+                    hough_vote_threshold = 50
+                    sobel_edge_detection = str(True).lower()
+                    sampling_rate=90
+                else:
+                    cluster_similar_lines = str(True).lower()
+                    hough_vote_threshold = 120
+                    sobel_edge_detection = str(False).lower()
+                    sampling_rate=75
+
+                param_content = param_template.format(
+                    HT_version=version,
+                    HT_parallelism="None",
+                    parallel_preprocessing=str(False).lower(),
+                    omp_threads=1,
+                    input=image["input"],
+                    output_folder=image["output_folder"],
+                    sobel_edge_detection=sobel_edge_detection,
+                    hough_vote_threshold=hough_vote_threshold,
+                    sampling_rate=sampling_rate,
+                    cluster_similar_lines=cluster_similar_lines,
+                    pbs_select=select,
+                    pbs_cpus=cpus,
+                    pbs_mem=mem,
+                    pbs_np=np,
+                    places=place_str
+                )
+
+                save_parameters_file(output_dir, cpus, select, place_str, param_content)
+                TESTS += 1
+
+        for version in configurations["HT_versions"]:    
+            
             # Adjust HT settings accordingly to the version
             if version == "PPHT":
                 cluster_similar_lines = str(False).lower()

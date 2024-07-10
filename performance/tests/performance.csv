@@ -1175,3 +1175,15 @@ total_duration,htDuration,pbs_ncpus,pbs_select,sampling_rate,cluster_rho_thresho
 463.885735,301.234332,32,4,90,75.0,5.0,false,360,25,scatter-excl,50,7,1.9,MPI,8,100,true,32,PPHT,syn_img_20k,1,true,50,0.015002,0.976667,146.294000,false,32,true,false,true
 28.614740,4.494845,32,4,90,75.0,5.0,false,360,25,scatter-excl,50,7,1.9,openMP,8,100,true,32,PPHT,syn_img_20k,1,true,50,0.003951,0.996667,22.159126,false,1,true,false,true
 28.989326,4.360944,32,4,90,75.0,5.0,false,360,25,scatter-excl,50,7,1.9,openMP,8,100,true,32,PPHT,syn_img_20k,1,true,50,0.003962,0.996667,22.664205,false,1,true,false,true
+7.263369,0.722913,1,1,90,75.0,5.0,false,360,25,pack-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_5k,1,false,50,0.040392,0.990000,6.386739,false,1,true,false,true
+7.265361,0.724833,1,1,90,75.0,5.0,false,360,25,pack-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_5k,1,false,50,0.040977,0.990000,6.388311,false,1,true,false,true
+30.192653,3.537280,1,1,90,75.0,5.0,false,360,25,pack-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_10k,1,false,50,0.014632,1.000000,26.181364,false,1,true,false,true
+29.581624,3.534278,1,1,90,75.0,5.0,false,360,25,pack-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_10k,1,false,50,0.014556,1.000000,25.553359,false,1,true,false,true
+116.349847,11.480111,1,1,90,75.0,5.0,false,360,25,pack-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_20k,1,false,50,0.008807,0.986667,102.919126,false,1,true,false,true
+116.469507,11.485169,1,1,90,75.0,5.0,false,360,25,pack-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_20k,1,false,50,0.008756,0.983333,103.033164,false,1,true,false,true
+7.271835,0.724535,1,1,90,75.0,5.0,false,360,25,scatter-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_5k,1,false,50,0.040065,0.990000,6.387942,false,1,true,false,true
+7.259391,0.720673,1,1,90,75.0,5.0,false,360,25,scatter-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_5k,1,false,50,0.040774,0.990000,6.386759,false,1,true,false,true
+29.578528,3.548447,1,1,90,75.0,5.0,false,360,25,scatter-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_10k,1,false,50,0.014421,1.000000,25.553426,false,1,true,false,true
+29.561405,3.534092,1,1,90,75.0,5.0,false,360,25,scatter-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_10k,1,false,50,0.014586,1.000000,25.550840,false,1,true,false,true
+116.353601,11.467312,1,1,90,75.0,5.0,false,360,25,scatter-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_20k,1,false,50,0.008777,0.986667,102.936705,false,1,true,false,true
+116.373848,11.481383,1,1,90,75.0,5.0,false,360,25,scatter-excl,50,7,1.9,None,8,100,true,1,PPHT,syn_img_20k,1,false,50,0.008815,0.986667,102.941992,false,1,true,false,true
