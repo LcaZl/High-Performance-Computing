@@ -14,7 +14,7 @@ void environmentInfo(std::unordered_map<std::string, std::string>& parameters);
 
 /**
  * Performs a series of preprocessing steps on the provided image based on the specified parameters.
- * Available options: grayscale conversion (madnatory), histogram equalization, Gaussian blurring and Sobel edge detection (SED) (with binary conversion mandatory after SED).
+ * Available options: grayscale conversion (mandatory), histogram equalization, Gaussian blurring and Sobel edge detection (SED) (with binary conversion mandatory after SED).
  *
  * Has a parallel version: SED & Gaussian blurring.
  *

@@ -54,12 +54,13 @@ double segmentLength(const Segment &segment);
  * Flattens a 2D vector of integers into a single 1D vector.
  *
  * @param matrix The 2D vector of integers to be flattened.
- * @return A 1D vector containing all elements of the 2D matrix in row-major order.
+ * @return A 1D vector containing all elements of the 2D matrix.
+ * 
  */std::vector<int> flatten(const std::vector<std::vector<int>> &matrix);
 
 /**
  * Reshapes a 1D vector of integers into a 2D vector with specified number of rows and columns.
- * The elements are filled into the 2D vector in row-major order based on the sequence in the 1D vector.
+ * The elements are filled into the 2D vector based on the sequence in the 1D vector.
  *
  * @param flat The 1D vector of integers to be reshaped into a 2D matrix.
  * @param rows The number of rows the resulting matrix should have.

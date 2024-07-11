@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 
         if (world_rank == 0){
 
-            // 0 reads parameters, image and eventually groud truth data.
+            // 0 reads parameters, image and groud truth data, if available.
             std::cout << "Starting the Hough Transform program" << std::endl; 
             totStart = MPI_Wtime();
 
@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
 
         std::vector<Segment> segments = HoughTransformation(img, parameters, gtLines);
         
-        if (world_rank == 0){ // Output and performance metrics are saved accordingly to parameters by 0.
+        if (world_rank == 0){ // Output and performance metrics are saved accordingly to parameters.
 
             if (parameters["output_disabled"] == "false"){
                 if (!segments.empty())

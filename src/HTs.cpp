@@ -156,7 +156,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT(const Image
                             for (int xi = std::max(0, x - lineGap); xi < std::min(image.width, x + lineGap); xi++) {
                                 if (image.data[yi * image.width + xi] > 0) {
                                     double calculatedRho = static_cast<double>((xi - centerX) * cosThetaValue + (yi - centerY) * sinThetaValue);
-                                    // Adapt the threshold based on the variance in calculated rho
+                                    // Adapt the distance threshold
                                     // double distanceThreshold = 1.0 + 0.05 * std::sqrt(std::abs(calculatedRho - rho));
                                     if (std::abs(calculatedRho - rho) <= 1.0) {
                                         if (!linePoints.empty() && (std::abs(linePoints.back().x - xi) > lineGap || std::abs(linePoints.back().y - yi) > lineGap)) {
@@ -415,7 +415,6 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_MPI(Image& 
                             for (int xi = std::max(0, x - lineGap); xi < std::min(imageWidth, x + lineGap); xi++) {
                                 if (localImage.data[yi * imageWidth + xi] > 0) {
                                     double calculatedRho = static_cast<double>((xi - centerX) * cosThetaValue + (yi - centerY) * sinThetaValue);
-                                    // Adapt the threshold based on the variance in calculated rho
                                     // double distanceThreshold = 1.0 + 0.02 * std::sqrt(std::abs(calculatedRho - rho));
                                     if (std::abs(calculatedRho - rho) <= 1.0) {
                                         if (!linePoints.empty() && (std::abs(linePoints.back().x - xi) > lineGap || std::abs(linePoints.back().y - yi) > lineGap)) {

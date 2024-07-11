@@ -74,7 +74,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
 ************************/
 
 /**
- * Performs the parallelized version of the HT using an Hybrid approach with MPI and openMP.
+ * Performs the parallelized version of the HT or PHT using an Hybrid approach with MPI and openMP.
  *
  * @param image Reference to the image object to analyze.
  * @param parameters A map containing parameters for the Hough Transform.

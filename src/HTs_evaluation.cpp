@@ -100,8 +100,6 @@ std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width,
         if (0 <= x2 && x2 < width) points.emplace_back(x2, y2);
     }
 
-
-    // Ensure we have valid points and sort them to choose endpoints as the furthest apart
     Point start = points.front();
     Point end = points.back();
 
@@ -135,12 +133,12 @@ std::vector<Segment> clustering(std::vector<Segment>& lines, const Image& image,
         linesMerged = false;
         std::vector<std::vector<Segment>> groups;
 
-        // Step 1: Group lines that are similar in terms of rho, theta, and endpoints
+        // Group lines that are similar in terms of rho, theta, and endpoints
         for (auto& line : lines) {
             bool merged = false;
             for (auto& group : groups) {
                 if (HT_version == "PPHT") {
-                    // Use both midpoint distance and angle for PPHT
+                    // Use both midpoint distance and angle for PPHT -> NOT USED.
                     double distance = midpointDistance(group[0].start, group[0].end, line.start, line.end);
                     double angleDiff = std::abs(group[0].thetaRad - line.thetaRad);
                     if (distance < rhoThreshold && angleDiff < thetaThresholdRadians) {
@@ -190,7 +188,7 @@ std::vector<Segment> clustering(std::vector<Segment>& lines, const Image& image,
                 Point avgStart(sumStart.x / totalVotes, sumStart.y / totalVotes);
                 Point avgEnd(sumEnd.x / totalVotes, sumEnd.y / totalVotes);
 
-                // For HT and PHT, recalculate the endpoints
+                // For HT and PHT, recalculate the endpoints -> DIfferent logic for PPHT.
                 Point newStart, newEnd;
                 std::tie(newStart, newEnd) = calculateEndpoints(avgRho, avgThetaRad, image.width, image.height);
                 mergedLines.push_back({newStart, newEnd, avgRho, avgThetaRad, avgThetaRad * (180 / M_PI), totalVotes});
@@ -218,12 +216,12 @@ void drawLine(int x0, int y0, int x1, int y1, std::vector<unsigned char>& rgb_da
             int idx = (y0 * width + x0) * 3; // Calculate pixel index in the RGB array
             if (color == 0) {
                 rgb_data[idx] = 255;     // Set red value
-                rgb_data[idx + 1] = 0;   // Set green value to zero
-                rgb_data[idx + 2] = 0;   // Set blue value to zero
+                rgb_data[idx + 1] = 0;   // Set green value
+                rgb_data[idx + 2] = 0;   // Set blue value
             } else if (color == 1) {
-                rgb_data[idx] = 0;       // Set red value to zero
+                rgb_data[idx] = 0;       // Set red value
                 rgb_data[idx + 1] = 0; // Set green value
-                rgb_data[idx + 2] = 255;   // Set blue value to zero
+                rgb_data[idx + 2] = 255;   // Set blue value
             }
         }
         if (x0 == x1 && y0 == y1) break; // Exit loop when end point is reached
@@ -244,6 +242,7 @@ void drawLinesOnImage(std::vector<Segment> &lines, Image& image, int color) {
 
 
 /**
+ * CLUSTERING WITH PPHT SUPPORT. NOT EFFECTIVE.
  * 
  * std::vector<Segment> clustering(std::vector<Segment>& lines, const Image& image, std::unordered_map<std::string, std::string>& parameters) {
     std::vector<Segment> mergedLines;

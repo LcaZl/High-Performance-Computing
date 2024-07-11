@@ -56,10 +56,7 @@ std::vector<std::vector<float>> calculateGaussianKernel(int kernelSize, float si
 void gaussianBlur(Image &image, int kernelSize, float sigma, bool verbose);
 
 /**
- * Applies Gaussian blur to an image in parallel, dividing the image into parts and processing each part simultaneously.
- *
- * This function calculates a Gaussian kernel, splits the image into multiple parts (with some overlap to avoid edge artifacts),
- * applies Gaussian blur to each part in parallel, and then recombines the parts into the final blurred image.
+ * Applies Gaussian blur to an image in parallel.
  *
  * @param img Reference to the image to be blurred.
  * @param kernelSize Size of the Gaussian kernel, must be odd.
@@ -70,11 +67,13 @@ void gaussianBlur(Image &image, int kernelSize, float sigma, bool verbose);
 void gaussianBlurParallel(Image &img, int kernelSize, float sigma, bool verbose, int numThreads);
 
 /**
- * Applies a Gaussian blur to a part of an image using a specified Gaussian kernel.
+ * Applies Gaussian blur to a single pixel in an image. Uses a convolution kernel.
  *
- * @param imgPart Subsection of the image to blur.
- * @param kernel Gaussian kernel to use for blurring.
- * @param overlap Number of overlapping pixels around the part (used to handle boundaries correctly).
+ * @param img Reference to the image to be blurred.
+ * @param output Reference to the Image object where the blurred result will be stored.
+ * @param kernel 2D vector representing the Gaussian kernel used for blurring.
+ * @param x Horizontal coordinate of the pixel to be blurred.
+ * @param y Vertical coordinate of the pixel to be blurred.
  */
 void gaussianBlurPixel(const Image& img, Image& output, const std::vector<std::vector<float>>& kernel, int x, int y);
 
@@ -83,7 +82,7 @@ void gaussianBlurPixel(const Image& img, Image& output, const std::vector<std::v
 **********************************************************************/
 
 /**
- * Applies Sobel edge detection on a grayscale image. Serial version.
+ * Applies Sobel edge detection. Serial version.
  *
  * @param img Reference to the Image object to be processed. Must be in grayscale.
  * @param threshold Intensity threshold for edge detection. Pixels below this threshold will be set to 0.
@@ -92,7 +91,7 @@ void gaussianBlurPixel(const Image& img, Image& output, const std::vector<std::v
 void sobelEdgeDetection(Image &img, int threshold, float scaleFactor);
 
 /**
- * Applies Sobel edge detection on a grayscale image. Parallel version.
+ * Applies Sobel edge detection. Parallel version.
  *
  * @param img Reference to the Image object to be processed. Must be in grayscale.
  * @param threshold Intensity threshold for edge detection. Pixels below this threshold will be set to 0.

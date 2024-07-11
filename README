@@ -161,15 +161,15 @@ _______________________________________________________________
 |______________________________________________________________|
 
 "parameters" is the configuration file for the program.
-It contains different parameters that allow to control different aspects of the program.
+It contains different properties that allow to control different aspects of the program.
 A single executable can be runned more times with totally different parameters.
 
-"parameters_configurations": contains a version of the parameters file for some images in "dataset/".
-The parameters specified regard only a subset of them, the ones that influece the preprocessing operations, HT configuration and clustering.
+"parameters_configurations": contains a version of the parameters file for all images in "dataset/".
+The parameters specified regard only a subset of them, the ones that influece the preprocessing, HT and clustering operations quality.
 
 Example:
 
-Previous parameters can be setted indipendently. The following ones control the quality of the result of the HT.
+Previous parameters can be setted indipendently since control the environment resources. The following ones control the quality of the result of the HT.
 ...
 greyscale_conversion=true
 gaussian_blur=false
@@ -184,11 +184,9 @@ hough_theta=360
 sampling_rate=90
 ppht_line_gap=25
 ppht_line_len=50
-cluster_similar_lines=false
+cluster_similar_lines=falseW
 cluster_theta_threshold=5.0
 cluster_rho_threshold=75.0
-
-
 
 _______________________________________________________________
 |                                                              |
