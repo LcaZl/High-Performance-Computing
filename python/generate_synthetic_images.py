@@ -131,7 +131,6 @@ def generate_synthetic_image_and_ground_truth(width, height, lines, line_length)
             if 0 <= x2 < width and 0 <= y2 < height:
                 valid_segment = True
                 
-        # Draw the line on the image
         cv2.line(base_background, (x1, y1), (x2, y2), (255, 255, 255), 1)
         
         rho, theta, theta_deg = calculate_hough_parameters(x1, y1, x2, y2, width, height)

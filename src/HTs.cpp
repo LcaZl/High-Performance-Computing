@@ -519,6 +519,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_OMP(const
 
     // Precompute cosine and sine values
     std::vector<double> cosTheta(thetaResolution), sinTheta(thetaResolution);
+    #pragma omp parallel for num_threads(numThreads)
     for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
         double thetaRad = thetaIndex * (M_PI / thetaResolution);
         cosTheta[thetaIndex] = cos(thetaRad);
@@ -609,6 +610,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> PPHT_OMP(const I
 
     // Precompute cosine and sine values
     std::vector<double> cosTheta(thetaResolution), sinTheta(thetaResolution);
+    #pragma omp parallel for num_threads(numThreads)
     for (int thetaIndex = 0; thetaIndex < thetaResolution; thetaIndex++) {
         double thetaRad = thetaIndex * (M_PI / thetaResolution);
         cosTheta[thetaIndex] = cos(thetaRad);
@@ -782,11 +784,11 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI_OMP(I
     }
 
     // Parallelize the vote accumulation
-    #pragma omp parallel for num_threads(numThreads) collapse(2)
+    #pragma omp parallel for num_threads(numThreads)
     for (int point : localEdgePoints) {    
-        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {
-            int x = point % imageWidth;
-            int y = point / imageWidth;             
+        int x = point % imageWidth;
+        int y = point / imageWidth; 
+        for (int thetaIndex = 0; thetaIndex < thetaResolution; ++thetaIndex) {      
             double rho = (x - centerX) * cosTheta[thetaIndex] + (y - centerY) * sinTheta[thetaIndex];
             int rhoIndex = static_cast<int>(rho + rhoMax);
             if (rhoIndex >= 0 && rhoIndex < rhoSize) {
@@ -808,7 +810,7 @@ std::tuple<std::vector<std::vector<int>>, std::vector<Segment>> HT_PHT_MPI_OMP(I
         }
 
         // Detect segments from the global accumulator
-        #pragma omp parallel for collapse(2) num_threads(numThreads) default(none) shared(globalAccumulator, rhoSize, thetaResolution, voteThreshold, imageWidth, imageHeight, segments, centerX, centerY, cosTheta, sinTheta, rhoMax)
+        #pragma omp parallel for collapse(2) num_threads(numThreads) 
         for (int rhoIndex = 0; rhoIndex < rhoSize; rhoIndex++) {
             for (int thetaIndex = 0; thetaIndex < thetaResolution; thetaIndex++) {
                 if (globalAccumulator[rhoIndex][thetaIndex] > voteThreshold) {

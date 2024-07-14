@@ -15,8 +15,8 @@
  * @param detected_segments Detected line segments that are evaluated against the ground truth.
  * @param parameters Parameters map to store the calculated precision and recall values.
  * @return A tuple containing the precision and recall values. 
- * 
- * Precision is the fraction of detected segments that are true positives, while recall is the fraction of ground truth segments that are correctly detected.
+ *  - Precision is the fraction of detected segments that are true positives.
+ *  - Recall is the fraction of ground truth segments that are correctly detected.
  */
 std::tuple<double, double> evaluate(const std::vector<Segment> &gt_segments, std::vector<Segment> &detected_segments, std::unordered_map<std::string, std::string> &parameters);
 
@@ -31,8 +31,8 @@ std::tuple<double, double> evaluate(const std::vector<Segment> &gt_segments, std
 std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width, int height);
 
 /**
- * Calculates the overlapping length between two collinear segments.
- * This function assumes the segments are collinear (as in "Progressive Probabilistic Hough Transform" paper by Matas and Galambos). 
+ * Calculates the overlapping length between two segments.
+ * This function assumes the segments are collinear as in "Progressive Probabilistic Hough Transform" paper by Matas and Galambos. 
  *
  * @param seg1 First segment to check for overlap.
  * @param seg2 Second segment to check for overlap.

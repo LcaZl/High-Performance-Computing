@@ -34,6 +34,6 @@ void preprocessImage(Image &img, std::unordered_map<std::string, std::string>& p
  * @param parameters A map containing parameters for the Hough Transform.
  * @param gtLines A vector of ground truth lines for the input image (Available only with synthetic samples).
  */
-std::vector<Segment> HoughTransformation(Image &img, std::unordered_map<std::string, std::string>& parameters, std::vector<Segment> gtSegments);
+std::vector<Segment> HoughTransformation(Image &img, std::unordered_map<std::string, std::string>& parameters, std::vector<Segment> gtLines);
 
 #endif

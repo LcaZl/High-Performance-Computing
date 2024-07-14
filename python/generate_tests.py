@@ -41,7 +41,7 @@ PARAM_DIR="{dir_path}"
 
 for PARAM_FILE in $PARAM_DIR/parameters_*; do
 
-    # Dynamically set the environment variables from PBS directives
+    # Set environment variables
     export PBS_SELECT={select}
     export PBS_NCPUS={select * cpus} # (select * cpus) -> total number of cpus.
     export PBS_MEM=8
@@ -56,7 +56,6 @@ for PARAM_FILE in $PARAM_DIR/parameters_*; do
     echo "OMP_PLACES=$OMP_PLACES"
     echo "NP_VALUE=$NP_VALUE"
 
-    # Get the parameter file for this array job
     mpiexec -np $NP_VALUE ./HPC/HoughTransform "$PARAM_FILE"
     mpiexec -np $NP_VALUE ./HPC/HoughTransform "$PARAM_FILE"
     
@@ -190,7 +189,6 @@ ppht_line_len=50
 
         for version in configurations["HT_versions"]:    
             
-            # Adjust HT settings accordingly to the version
             if version == "PPHT":
                 cluster_similar_lines = str(False).lower()
                 hough_vote_threshold = 50

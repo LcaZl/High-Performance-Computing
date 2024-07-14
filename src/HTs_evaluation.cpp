@@ -108,7 +108,7 @@ std::tuple<Point, Point> calculateEndpoints(double rho, double theta, int width,
 
 double computeOverlapLength(const Segment& seg1, const Segment& seg2) {
 
-    // Simplified overlap calculation assuming collinear segments
+    // Overlap calculation assuming collinear segments
     double x1 = std::max(std::min(seg1.start.x, seg1.end.x), std::min(seg2.start.x, seg2.end.x));
     double x2 = std::min(std::max(seg1.start.x, seg1.end.x), std::max(seg2.start.x, seg2.end.x));
     double y1 = std::max(std::min(seg1.start.y, seg1.end.y), std::min(seg2.start.y, seg2.end.y));
@@ -133,7 +133,7 @@ std::vector<Segment> clustering(std::vector<Segment>& lines, const Image& image,
         linesMerged = false;
         std::vector<std::vector<Segment>> groups;
 
-        // Group lines that are similar in terms of rho, theta, and endpoints
+        // Group lines that are similar in terms of rho, theta and endpoints
         for (auto& line : lines) {
             bool merged = false;
             for (auto& group : groups) {

@@ -12,7 +12,7 @@ void convertToGrayscale(Image& img) {
 
     std::vector<unsigned char> grayscaleData;
 
-    // Pre-allocate memory for grayscale data.
+    // Allocate memory for grayscale data.
     grayscaleData.reserve(img.width * img.height);
 
     for (size_t i = 0; i < img.data.size(); i += 3) {
@@ -156,10 +156,10 @@ void gaussianBlurParallel(Image& img, int kernelSize, float sigma, bool verbose,
     Image output = img; // Create a copy of the original image for the output
 
     // Parallel region with specified number of threads
-    #pragma omp parallel num_threads(numThreads) default(none) shared(img, output, kernel, kernelSize)
+    #pragma omp parallel num_threads(numThreads)
     {
         // Parallelize the nested loops with collapse to flatten nested loops into a single parallel loop
-        #pragma omp for collapse(2) schedule(static)
+        #pragma omp for collapse(2) 
         for (int y = 0; y < img.height; ++y) {
             for (int x = 0; x < img.width; ++x) {
                 gaussianBlurPixel(img, output, kernel, x, y);
@@ -245,7 +245,7 @@ void sobelEdgeDetectionParallel(Image& img, int threshold, float scaleFactor, in
     int maxMagnitude = 0;
 
     // First pass (Parallel): Calculate the gradient magnitude and identify the maximum value
-    #pragma omp parallel for reduction(max:maxMagnitude) num_threads(numThreads) default(none) shared(img, gx, gy, result)
+    #pragma omp parallel for reduction(max:maxMagnitude) num_threads(numThreads)
     for (int y = 1; y < img.height - 1; ++y) {
         for (int x = 1; x < img.width - 1; ++x) {
             int sumX = 0, sumY = 0;
@@ -267,7 +267,7 @@ void sobelEdgeDetectionParallel(Image& img, int threshold, float scaleFactor, in
     #pragma omp barrier
 
     // Second pass (Parallel): Apply threshold and scaling
-    #pragma omp parallel for num_threads(numThreads) default(none) shared(img, gx, gy, result, maxMagnitude, threshold, scaleFactor)
+    #pragma omp parallel for num_threads(numThreads)
     for (int y = 1; y < img.height - 1; ++y) {
         for (int x = 1; x < img.width - 1; ++x) {
             int sumX = 0, sumY = 0;

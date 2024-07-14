@@ -206,7 +206,7 @@ bool processInputs(int argc, char* argv[], std::unordered_map<std::string, std::
     }
 
     // Extract the folder path and image name
-    lastSlashIndex = inputPath.find_last_of("/\\"); // Handle both Unix and Windows paths
+    lastSlashIndex = inputPath.find_last_of("/\\");
     lastDotIndex = inputPath.find_last_of(".");
 
     if (lastSlashIndex != std::string::npos) {

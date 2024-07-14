@@ -4,8 +4,8 @@ _______________________________________________________________
 |______________________________________________________________|
 
 - "dataset" folder: 
-    - "random_images" folder: contains single natural images for testing
-    - "synthetic_images" folders: each folder contains images with a file called "ground_truth.csv" that specify the correct coordinates of the segments in the images.
+    - "random_images" folder contains single natural images for testing
+    - "synthetic_images" folder contains images with a file called "img_synthetic_gt.csv" that specify the correct coordinates of the segments in the images.
 
 - "src" folder:
     - contains the c++ code of the program
@@ -14,11 +14,11 @@ _______________________________________________________________
     - Python code for images conversion.
     - Python code to generate synthetic datasets. 
     - Python code to generate test cases.
-    - Python Notebook to analyze the performance (not devoloped on HPC Cluster)
 
 - "docs" folder: documents, slides and other material related to project.
 
 - "performance" folder:
+    - Python Notebook to analyze the performance (not devoloped on HPC Cluster)
     - contains .csv files with the registered performance of each run of the program.
 
 - "output" folder: used to save any output of the program (except the performance)
@@ -53,7 +53,7 @@ qsub HoughTransform.sh
 
 NOTE
 In script HoughTransform.sh, to run the program is used the following command:
-mpiexec -np 1 ./HPC/HoughTransform HPC/parameters
+mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
 
 _______________________________________________________________
 |                                                              |

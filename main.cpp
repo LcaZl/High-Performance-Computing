@@ -52,9 +52,13 @@ int main(int argc, char* argv[]) {
             gtLines = gtData[parameters["image_name"] + ".pnm"];
 
             std::cout << "Loaded " << gtLines.size() << " ground truth lines for image " << parameters["image_name"] << std::endl;
-            if (gtLines.size() == 0)
+            if (gtLines.size() == 0){
                 std::cout << "Precision and recall metrics not available." << std::endl;
+                parameters["precision"] = std::to_string(0);
+                parameters["recall"] = std::to_string(0);
+            }
             
+
             printParameters(parameters);
             preprocessImage(img, parameters); // Image prepared accordingly to parameters
         }

@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -l select=1:ncpus=8:mem=8gb -l place=pack:excl
+#PBS -l select=1:ncpus=4:mem=8gb -l place=pack:excl
 #PBS -l walltime=0:50:00
 #PBS -N ht
 #PBS -q short_cpuQ
@@ -22,6 +22,7 @@ PARAM_FILE="HPC/parameters"
 export NP_VALUE=$(grep "pbs_np=" $PARAM_FILE | cut -d '=' -f 2)
 export OMP_PLACES=threads
 
+mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
 mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
 
 # Unset the environment variables and deactivate virtual environment
