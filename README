@@ -1,7 +1,18 @@
-_______________________________________________________________
-|                                                              |
-|                        Organization                          |
-|______________________________________________________________|
+# High-Performance Computing: Hough Transform for Line Detection
+
+This project investigates parallel implementations of the Hough Transform (HT) for line detection in images. The work focuses on leveraging High-Performance Computing (HPC) techniques to optimize three variants of the HT algorithm:
+
+- Standard Hough Transform (HT)
+- Probabilistic Hough Transform (PHT)
+- Progressive Probabilistic Hough Transform (PPHT)
+
+Each algorithm is implemented in multiple forms: sequential, MPI-parallelized, OpenMP-parallelized, and a hybrid MPI/OpenMP version. The project is developed in C++ for core logic and in Python for dataset generation, image processing, and performance analysis.
+
+The aim is to evaluate the computational performance and scalability of different parallel strategies using synthetic and natural image datasets.
+
+For a complete description of the project and results refere to the [report](Report.pdf)
+
+# Folders Organization
 
 - "dataset" folder: 
     - "random_images" folder contains single natural images for testing
@@ -27,86 +38,85 @@ _______________________________________________________________
 - "parameters" file: parameters to control the program behaviour without rebuilding it.
 - "parameters_configurations" : contains different versions of the parameters file.
 
-_______________________________________________________________
-|                                                              |
-|                      Compile program                         |
-|______________________________________________________________|
-CODE IN: src/
+# Compilation Instructions
 
-1 - Load modules
-[bash]
+The source code is located in the `src/` directory. Before compiling, load the required modules:
+
+```bash
 module load gcc91
 module load openmpi-3.0.0--gcc-9.1.0
 module load mpich-3.2.1--gcc-9.1.0
+```
 
-2 - Build with:
-[bash]
+Compile the program using:
+
+```bash
 mpic++ -g -Wall -fopenmp -o HoughTransform main.cpp src/*.cpp
+```
 
-_______________________________________________________________
-|                                                              |
-|                      Execute program                         |
-|______________________________________________________________|
+# Execution
 
-[bash]
+```bash
 qsub HoughTransform.sh
+```
 
-NOTE
+## Note
 In script HoughTransform.sh, to run the program is used the following command:
 mpiexec -np $NP_VALUE ./HPC/HoughTransform $PARAM_FILE
 
-_______________________________________________________________
-|                                                              |
-|          Image converter - How to use - Locally              |
-|______________________________________________________________|
-CODE IN: python/image_converter.py
+# Image converter
+## How to use - Local Usage Guide
 
-It's possibile to convert an image or all the images in a folder to a different format.
+**Script location:** `python/image_converter.py`
 
-1 - Use:
-[bash]
-python image_converter.py <path_to_image or path_to_folder> <requested format (pnm, jpeg, png, ...)>
+This utility allows converting a single image or all images in a folder to a different format.
 
-IMPORTANT:
-(<path_to_image> must end with the image file name WITHOUT the EXTENSION)
-(<path_to_folder> must end with the folder name WITHOUT FINAL "/")
-(<requested_format> WITHOUT "." in front)
+### Usage
+
+```bash
+python image_converter.py <path_to_image_or_folder> <target_format>
+```
+
+### Important
+- <path_to_image> must end with the image file name WITHOUT the EXTENSION
+- <path_to_folder> must end with the folder name WITHOUT FINAL "/"
+- <requested_format> WITHOUT "." in front
 
 EXAMPLE - Convert all images in "input_images" folder to .pnm format
-[bash]
+
+```bash
 python image_converter.py dataset/images pnm
+```
 
 (python or python3)
 
-____________________________________________________________
-|                                                              |
-|         Image converter - How to use - HPC cluster           |
-|______________________________________________________________|
+## How to use - HPC cluster
 CODE IN: python/image_converter.py
 
-1 - Create python virtual environment with OpenCV on login node home directory
+1. Create python virtual environment with OpenCV on login node home directory
 (from PBS command line inteface slides)
 
-[bash]
+```bash
 module load python-3.7.2
 python3 -m venv cv2
 source cv2/bin/activate
 (tf) $ python -m pip install --upgrade pip
 (tf) $ python -m pip install opencv-python
 (tf) deactivate
+```
 
 Now the environment with openCV is available to encapsulate script execution.
 
-2 - Use image_converter.sh script. 
+2. Use image_converter.sh script. 
 The path and format can be modified in image_converter.sh script.
 
-[bash]
+```bash
 qsub image_converter.sh
+```
+# Synthetic images generator
 
-_______________________________________________________________
-|                                                              |
-|     Synthetic images generator - How to use - Locally        |
-|______________________________________________________________|
+## How to use - Locally
+
 CODE IN: python/generate_synthetic_images.py
 
 A synthetic image can be generated based on given parameters, which are:
@@ -119,55 +129,51 @@ All these parameters can be adjusted in script file (see CODE IN).
 
 How to use:
 
-1 - Set the parameters inside generate_synthetic_images.py 
+1. Set the parameters inside generate_synthetic_images.py 
 
-2- Use:
-[bash]
+2. Use:
+```bash
 python generate_synthetic_images.py
+```
 
 (python or python3)
 
-_______________________________________________________________
-|                                                              |
-|    Synthetic images generator - How to use - HPC Cluster     |
-|______________________________________________________________|
+## How to use - HPC Cluster
 CODE IN: python/generate_synthetic_images.py
 
-[ step 1 of: "Image converter - How to use - HPC cluster" section ]
-1 - Create python virtual environment with OpenCV on login node home directory
-(from PBS command line inteface slides)
+0. Follow step 1 of: "Image converter - How to use - HPC cluster" section
 
-[bash]
+1. Create python virtual environment with OpenCV on login node home directory (from PBS command line inteface slides)
+
+```bash
 module load python-3.7.2
 python3 -m venv cv2
 source cv2/bin/activate
 (tf) $ python -m pip install --upgrade pip
 (tf) $ python -m pip install opencv-python
 (tf) deactivate
+```
 
 Now the environment with openCV is available to encapsulate script execution.
 
-2 - Set the dataset parameters inside generate_synthetic_images.py file.
+2. Set the dataset parameters inside generate_synthetic_images.py file.
 
-3 - Generate the dataset using generate_synthetic_images.sh script.
+3. Generate the dataset using generate_synthetic_images.sh script.
 
-[bash]
+```bash
 qsub generate_synthetic_images.sh
+```
 
+# Parameters
 
-_______________________________________________________________
-|                                                              |
-|                        Parameters                            |
-|______________________________________________________________|
-
-"parameters" is the configuration file for the program.
+[Parameters](parameters) is the configuration file for the program.
 It contains different properties that allow to control different aspects of the program.
 A single executable can be runned more times with totally different parameters.
 
-"parameters_configurations": contains a version of the parameters file for all images in "dataset/".
+[Parameters configurations file](parameters_configurations) contains a version of the parameters file for all images in "dataset/".
 The parameters specified regard only a subset of them, the ones that influece the preprocessing, HT and clustering operations quality.
 
-Example:
+## Example:
 
 Previous parameters can be setted indipendently since control the environment resources. The following ones control the quality of the result of the HT.
 ...
@@ -188,149 +194,146 @@ cluster_similar_lines=falseW
 cluster_theta_threshold=5.0
 cluster_rho_threshold=75.0
 
-_______________________________________________________________
-|                                                              |
-|                   Parameters - Description                   |
-|______________________________________________________________|
+## Detailed description
 
- - General Execution Parameters
+- General Execution Parameters
 
-    HT_version
+    - HT_version
         Description: Specifies the version of the Hough Transform to use.
             HT: Standard Hough Transform.
             PHT: Probabilistic Hough Transform.
             PPHT: Progressive Probabilistic Hough Transform.
         Values: HT, PHT, PPHT
 
-    HT_parallelism
+    - HT_parallelism
         Description: Indicates whether the execution will be parallelized (where necessary) and with which method. Can specify a sequential execution ('None')
         Values: None, MPI, openMP, Hybrid
 
-    parallel_preprocessing
+    - parallel_preprocessing
         Description: Specifies if the preprocessing steps (Gaussian blurring and Sobel edge detection) must be performed using openMP to speed up the process.
         Values: true, false
 
-    omp_thread
+    - omp_thread
         Description: Number of threads to use. For HT_parallelim='OMP' or HT_parallelim='Hybrid' and for parallel_preprocessing='true' this values is used.
         Values: <int>
 
-    pbs_np
+    - pbs_np
         Description: Number of processes to specify within the mpiexec -n or -np parameter. This values is specified here to facilitate testing phase.
         Values: <int>
     
-    pbs_place
+    - pbs_place
         Decription: a PBS environment configuration parameter. Not influence the program execution, for tests, this values is automatically aligned to the one provided to PBS, for manual testing in order to produce a consistent performance row it must be aligned manually withing parameters file and HoughTransform.sh script.
         Values: pack, pack:excl, scatter, scatter:excl
         
 
- - Input and Output Parameters
+- Input and Output Parameters
 
-    input
+    - input
         Description: Path to the input image or dataset inside the predefined "dataset" folder.
         Values: "dataset/..."
 
-    output_folder
+    - output_folder
         Description: Folder where the program will save the intermediate output images of the program. If it doesn"t exist, it will be created. If another folder with the same name exists, it will be deleted (with all content) and recreated.
         Values: "output/..."
 
-    performance_path
+    - performance_path
         Description: Path where performance evaluation results are saved in .csv files for later inspection.
         Values: "performance/..."
 
-    verbose
+    - verbose
         Description: If true, all available information about the process will be shown in the console. If false, only limited information will be shown.
         Values: true, false
         
- - Images Conversion Parameters
+- Images Conversion Parameters
 
-    output_disabled
+    - output_disabled
         Description: if true the program won't produce any image in output.
         Values: true, false
 
-    convert_output
+    - convert_output
         Description: If true converts all program .pnm output images in the folder specified in "output" parameter to the format specified by "conversion_format" parameter.
         Values: true, false
 
-    converter_program_location
+    - converter_program_location
         Description: Path to the external Python script used for converting output images.
         Values: "./src/python/image_converter.py"
 
-    conversion_format
+    - conversion_format
         Description: Format to which the output images will be converted.
         Values: jpg, pnm, jpeg, png, ...
 
- - Image Preprocessing Parameters
+- Image Preprocessing Parameters
 
-    greyscale_conversion
+    - greyscale_conversion
         Description: Converts the image to greyscale if true.
         Values: true, false
 
-    gaussian_blur
+    - gaussian_blur
         Description: Applies Gaussian blur to the image based on the parameters gb_kernel_size and gb_sigma, if true.
         Values: true, false
 
-    gb_kernel_size
+    - gb_kernel_size
         Description: Size of the quadratic matrix to use for blurring.
         Values: <int>
 
-    gb_sigma
+    - gb_sigma
         Description: Standard deviation used to compute the matrix values for Gaussian blur.
         Values: <float>
 
-    histogram_equalization
+    - histogram_equalization
         Description: Applies histogram equalization to increase contrast and redistribute the intensities.
         Values: true, false
 
-    Edge Detection Parameters
+    - Edge Detection Parameters
 
-        sobel_edge_detection
+        - sobel_edge_detection
             Description: Uses the Sobel algorithm to detect edges in the image, based on the parameters sed_threshold and sed_scale_factor. Sobel edge detection find the gradient magnitude of the image intensity, then highlight regions that should correspond to edges.
             Values: true, false
 
-        sed_threshold
+        - sed_threshold
             Description: Threshold value for the Sobel edge detection algorithm. It determines the minimum gradient magnitude that will be considered as an edge.
             Values: <int>
 
-        sed_scale_factor
+        - sed_scale_factor
             Description: Scale factor for the Sobel edge detection algorithm. It is used to scale the computed gradient magnitudes.
             Values: <int>
 
- - HT, PHT and PPHT Parameters
+- HT, PHT and PPHT Parameters
 
-    hough_vote_threshold
+    - hough_vote_threshold
         Description: Minimum number of votes needed to consider a line in the Hough Transform. This parameter filters out lines that are not strongly represented in the image.
         Values: <int>
 
-    hough_theta
+    - hough_theta
         Description: Theta resolution of the Hough Transform in degrees. It defines the angular resolution of the Hough space.
         Values: <int>
 
- - PHT and PPHT Parameters
+- PHT and PPHT Parameters
 
-    sampling_rate
+    - sampling_rate
         Description: Sampling rate for the Progressive Probabilistic Hough Transform (PPHT). This parameter determines the fraction of points that will be used in each iteration, affecting the efficiency and accuracy of the transform.
         Values: <int>
 
- - PPHT Parameters
+- PPHT Parameters
 
-    ppht_line_gap
+    - ppht_line_gap
         Description: Maximum allowed gap between points on the same line to link them in PPHT. This parameter helps in connecting broken segments of a line.
         Values: <int>
 
-    ppht_line_len
+    - ppht_line_len
         Description: Minimum line length for a line to be detected in PPHT. Shorter lines will be ignored, reducing noise.
         Values: <int>
 
- - Clustering Parameters
+- Clustering Parameters
 
-    cluster_similar_lines
+    - cluster_similar_lines
         Description: If true, clusters similar lines based on cluster_theta_threshold and cluster_rho_threshold. This helps in reducing redundancy by merging lines that are nearly identical.
         Values: true, false
 
-    cluster_theta_threshold
+    - cluster_theta_threshold
         Description: Threshold for clustering similar lines in terms of theta difference. It defines the angular tolerance for merging lines.
         Values: <float>
 
-    cluster_rho_threshold
+    - cluster_rho_threshold
         Description: Threshold for clustering similar lines in terms of rho difference. It defines the distance tolerance for merging lines.
         Values: <float>
